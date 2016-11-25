@@ -1,0 +1,29 @@
+{
+    "name": "longxinh/rpc",
+    "description": "Basic Swoole RPC",
+    "keywords": ["RPC"],
+    "authors": [
+        {
+            "name": "XinHui.Long",
+            "email": "longxinhui.e@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.4",
+        "ext-swoole": "1.8.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Swoole\\": "src"
+        },
+        "classmap": [],
+        "files": []
+    },
+    "repositories": {
+        "packagist": {
+            "type": "composer",
+            "url": "https://packagist.phpcomposer.com"
+        }
+    },
+    "minimum-stability": "dev"
+}
