@@ -2,6 +2,8 @@
     "name": "longxinh/rpc",
     "description": "Basic Swoole RPC",
     "keywords": ["RPC"],
+    "type": "library",
+    "license": "MIT",
     "authors": [
         {
             "name": "XinHui.Long",
