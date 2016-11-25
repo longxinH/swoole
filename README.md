@@ -23,6 +23,12 @@ make && make install
 ```
 ----------
 
+##安装
+```php
+composer require "longxinh/rpc:dev-master"
+```
+----------
+
 ##使用
 ###RPC/monitor/server/discovery.php 服务发现服务端
 > * 服务发现服务端，通过扫描Redis获取到各服务器上报的地址和端口，并生成配置到指定路径
