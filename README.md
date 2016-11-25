@@ -10,7 +10,7 @@ swoole rpc
 ## Install
 
 ### Install composer
-```
+```shell
  curl -sS https://getcomposer.org/installer | php
 ```
 
@@ -24,21 +24,46 @@ make && make install
 ----------
 
 ##安装
-```php
+```
 composer require "longxinh/rpc:dev-master"
 ```
 ----------
 
 ##使用
-###RPC/monitor/server/discovery.php 服务发现服务端
+###rpc_path/monitor/server/discovery.php 服务发现服务端
 > * 服务发现服务端，通过扫描Redis获取到各服务器上报的地址和端口，并生成配置到指定路径
 
 ```php
-$server = new \Swoole\Monitor\Discovery('monitorpath/config/monitor.ini');
+class Discovery extends Server {
+
+    /**
+     * @param \swoole_server $server
+     * @param int $fd
+     * @param int $from_id
+     * @param array $data
+     * @param array $header
+     * @return mixed|void
+     */
+    public function doWork(\swoole_server $server, $fd, $from_id, $data, $header)
+    {
+
+        if (empty($data['host']) || empty($data['port']) || empty($data['time'])) {
+            return $this->sendMessage($fd, Format::packFormat('', '', self::ERR_PARAMS), $header['type']);
+        }
+
+        //todo 注册服务
+        (new ServiceList($this->config['redis']))->register($data['service'], $data['host'], $data['port'], $data['time']);
+
+        return $this->sendMessage($fd, Format::packFormat('', 'register success'), $header['type'], $header['guid']);
+    }
+
+}
+
+$server = new Discovery('../config/monitor.ini');
 $server->run();
 ```
 
-###RPC/monitor/config/monitor.ini 服务发现服务端配置参数
+###rpc_path/monitor/config/monitor.ini 服务发现服务端配置参数
 1. ```redis```     redis ip，端口
 2. ```server```    swoole 服务的ip，端口，运行模式
 3. ```swoole```    swoole 配置选项
@@ -77,7 +102,13 @@ daemonize = 0
 
 ```
 
-###RPC/service/server/swoole.php RPC服务端
+###\Swoole\Service\ServiceList 服务注册
+####依赖redis
+> * ```register``` 方法, 服务注册 收集不同服务上报的host、port保存在redis中，并且注册可用服务和移除不可用服务
+> * ```drop``` 方法, 移除不可用服务
+> * ```getServiceList``` 方法, 获取可用的服务列表
+
+###rpc_path/service/server/swoole.php RPC服务端
 > * ```$server->setServiceName(string $name)``` 用于多个服务同时运行时，作为服务的区分，同时也可以使客户端，更容易调用不同的服务  
 > * ```doWork``` 方法, 服务器在接收信息 ```onReceive``` 回调中会调用 ```doWork``` 方法
 > * ```doTask``` 方法, 服务器在接收信息 ```onTask``` 回调中会调用 ```doTask``` 方法，并返回数据给 ```onFinish```
@@ -103,7 +134,7 @@ $server->run();
 
 ```
 
-###RPC/service/config/swoole.ini 服务端配置参数
+###rpc_path/service/config/swoole.ini 服务端配置参数
 1. ```server```   swoole 服务的ip，端口，运行模式
 2. ```monitor```  服务上报服务端的ip，端口，运行模式
 3. ```swoole```   swoole配置选项
@@ -145,7 +176,7 @@ daemonize = 0
 
 ```
 
-###RPC/client/client.php RPC客户端
+###rpc_path/client/client.php RPC客户端
 ####SOA client 服务化客户端
 > * ```$client->setService(string $name)``` 设置需要调用的服务名称，会根据服务发现生成配置文件，连接到对应的服务端
 > * ```$client->setServiceList(serverlist)``` 需要配置可用的服务列表
@@ -199,13 +230,13 @@ var_dump($result);
 > * 服务注册/发现，通过扫描redis获取到所有可用服务列表，并生成配置到指定路径
 
 ```
- cd RPC/monitor/server/
+ cd rpc_path/demo/monitor/server/
  php discovery.php start
 ```
 
 ###运行服务
 ```
- cd RPC/service/server
+ cd rpc_path/demo/service/server/
  php swoole.php start
 ```
 
@@ -213,7 +244,7 @@ var_dump($result);
 > * 需要配置服务发现生成的ip地址文件
 
 ```
- cd RPC/service/client
+ cd rpc_path/demo/client/
  php client.php
 ```
 
