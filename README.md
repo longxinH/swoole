@@ -108,7 +108,8 @@ daemonize = 0
 > * ```drop``` 方法, 移除不可用服务
 > * ```getServiceList``` 方法, 获取可用的服务列表
 
-###rpc_path/service/server/swoole.php RPC服务端
+###rpc_path/service/server/swoole.php  RPC服务端
+> * ```afterStart``` 方法 在服务启动之前的hook，可用于自行创建 ```swoole_process``` 等 
 > * ```$server->setServiceName(string $name)``` 用于多个服务同时运行时，作为服务的区分，同时也可以使客户端，更容易调用不同的服务  
 > * ```doWork``` 方法, 服务器在接收信息 ```onReceive``` 回调中会调用 ```doWork``` 方法
 > * ```doTask``` 方法, 服务器在接收信息 ```onTask``` 回调中会调用 ```doTask``` 方法，并返回数据给 ```onFinish```
