@@ -228,7 +228,7 @@ var_dump($result);
 ```
 
 ###运行服务监控
-> * 服务注册/发现，通过扫描redis获取到所有可用服务列表，并生成配置到指定路径
+> * 服务注册/发现，通过扫描redis获取到所有可用服务列表，并保存
 
 ```
  cd rpc_path/demo/monitor/server/
@@ -242,7 +242,7 @@ var_dump($result);
 ```
 
 ###客户端
-> * 需要配置服务发现生成的ip地址文件
+> * 需要配置服务发现，注册在redis中的可用服务列表
 
 ```
  cd rpc_path/demo/client/
