@@ -194,6 +194,10 @@ abstract class Server extends ServerCallback implements ServerInterface
             $this->serviceDiscovery($this->config['monitor']);
         }
 
+        if (method_exists($this, 'afterStart')) {
+            $this->afterStart();
+        }
+
         $this->server->start();
     }
 
