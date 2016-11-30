@@ -27,7 +27,7 @@ class Discovery extends Server {
     {
 
         if (empty($data['host']) || empty($data['port']) || empty($data['time'])) {
-            return $this->sendMessage($fd, Format::packFormat('', '', self::ERR_PARAMS), $header['type']);
+            return Format::packFormat('', '', self::ERR_PARAMS);
         }
 
         //todo 注册服务
