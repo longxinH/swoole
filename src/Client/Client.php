@@ -2,7 +2,13 @@
 
 namespace Swoole\Client;
 
+use Swoole\Packet\Format;
+
 class Client implements ClientInterface {
+
+    const ERR_UNPACK     = 8006; //解包失败了
+    const ERR_HEADER     = 8007; //错误的协议头
+    const ERR_LENGTH     = 8008; //错误的长度
 
     /**
      * @var \swoole_client
@@ -47,7 +53,7 @@ class Client implements ClientInterface {
     public function send($data)
     {
         if ($this->client->isConnected()) {
-            $this->client->send($data);
+            $this->client->send(Format::packEncode($data));
 
             return $this->receive();
         }
@@ -61,7 +67,26 @@ class Client implements ClientInterface {
     public function receive()
     {
         if ($this->client->isConnected()) {
-            return $this->client->recv();
+            $result = $this->client->recv();
+            $header = Format::packDecodeHeader($result);
+
+            //错误的包头
+            if ($header == false) {
+                return $this->resultError('ERR_HEADER', self::ERR_HEADER);
+            }
+
+            if (Format::checkHeaderLength($header, $result) == false) {
+                return $this->resultError('ERR_LENGTH', self::ERR_LENGTH);
+            }
+
+            $data = Format::packDecode($result, $header['type']);
+
+            //解包失败
+            if ($data === false) {
+                return $this->resultError('ERR_UNPACK', self::ERR_UNPACK);
+            }
+
+            return $data;
         }
         
         return null;
@@ -98,5 +123,23 @@ class Client implements ClientInterface {
         return $this;
     }
 
-    
+    /**
+     * @return bool
+     */
+    public function isConnected()
+    {
+        return $this->client->isConnected();
+    }
+
+    private function resultError($message, $erron)
+    {
+        return json_encode(
+            [
+                'code'  => $erron,
+                'msg'   => $message,
+                'data'  => ''
+            ]
+        );
+    }
+
 }

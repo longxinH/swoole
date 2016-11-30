@@ -20,10 +20,11 @@ class DemoServer extends Server {
      * @param int $from_id
      * @param array $data
      * @param array $header
+     * @return array
      */
     public function doWork(\swoole_server $server, $fd, $from_id, $data, $header)
     {
-        $this->sendMessage($fd, Format::packFormat($data['params']), $header['type'], $header['guid']);
+        return Format::packFormat($data['params']);
     }
 
     /**

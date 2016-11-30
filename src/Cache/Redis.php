@@ -8,12 +8,16 @@ class Redis implements CacheInterface {
      */
     protected static $instance;
 
+    protected $host;
+
+    protected $port;
+
     /**
      * @var \Redis
      */
     protected $redis;
     
-    private function __construct($host, $port, $auth = false)
+    private function __construct($host, $port, $auth = false, $db = '')
     {
         try {
             $this->redis = new \Redis();
@@ -21,9 +25,16 @@ class Redis implements CacheInterface {
             if ($auth) {
                 $this->redis->auth($auth);
             }
+
+            if ($db) {
+                $this->selectDb($db);
+            }
         } catch (\Exception $e) {
             throw new \Exception($e->getMessage(), $e->getCode());
         }
+
+        $this->host = $host;
+        $this->port = $port;
     }
 
     /**
@@ -34,12 +45,13 @@ class Redis implements CacheInterface {
     {
         $host = $config['host'];
         $port = $config['port'];
+        $db = isset($config['db']) ? $config['db'] : '';
         $pwd = isset($config['auth']) ? $config['auth'] : false;
         
-        $key = $host . '_' . $port;
+        $key = $host . '_' . $port . ($db ? '_' . $db : '');
         
         if (!isset(self::$instance[$key])) {
-            self::$instance[$key] = new self($host, $port, $pwd);
+            self::$instance[$key] = new self($host, $port, $pwd, $db);
         }
 
         return self::$instance[$key];

@@ -237,12 +237,12 @@ abstract class Server extends ServerCallback implements ServerInterface
             $client = new Client($monitor['sock_type']);
             $client->connect($monitor['host'], $monitor['port']);
             while (true) {
-                $client->send(Format::packEncode([
+                $client->send([
                     'service'   => self::$serviceName,
                     'host'      => $server->getServerHost(),
                     'port'      => $server->getPort(),
                     'time'      => time()
-                ]));
+                ]);
 
                 sleep(10);
             }
@@ -313,7 +313,8 @@ abstract class Server extends ServerCallback implements ServerInterface
             $this->sendMessage($fd, Format::packFormat('', '', self::SUCCESS_TASK), $header['type'], $header['guid']);
         } else {
             try {
-                $this->doWork($server, $fd, $from_id, $data, $header);
+                $data = $this->doWork($server, $fd, $from_id, $data, $header);
+                $this->sendMessage($fd, $data, $header['type'], $header['guid']);
             } catch (\Exception $e) {
                 $this->sendMessage($fd, Format::packFormat('', '', self::ERR_CALL), $header['type'], $header['guid']);
             }

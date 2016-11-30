@@ -33,7 +33,7 @@ class Discovery extends Server {
         //todo 注册服务
         (new ServiceList($this->config['redis']))->register($data['service'], $data['host'], $data['port'], $data['time']);
 
-        return $this->sendMessage($fd, Format::packFormat('', 'register success'), $header['type'], $header['guid']);
+        return Format::packFormat('', 'register success');
     }
 
 }

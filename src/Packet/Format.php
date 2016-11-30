@@ -19,7 +19,7 @@ class Format {
      * @param int $code
      * @return array
      */
-    public static function packFormat($data = '', $message = 'success', $code = 0)
+    public static function packFormat($data = '', $message = 'OK', $code = 0)
     {
         $pack = [
             'code'      => $code,
@@ -92,7 +92,7 @@ class Format {
      * @param string $guid
      * @return string
      */
-    public static function packEncode($data, $protocol_mode = Serialize::PROTOCOLS_MODE_SERIALIZE, $guid = '')
+    public static function packEncode($data, $protocol_mode = Serialize::PROTOCOLS_MODE_JSON, $guid = '')
     {
         switch ($protocol_mode) {
             case Json::PROTOCOLS_MODE_JSON :

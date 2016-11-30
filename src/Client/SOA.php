@@ -160,24 +160,24 @@ class SOA {
                     $result = $result_obj->socket->recv();
 
                     if (empty($result)) {
-                        $this->resultError($result_obj, Result::ERR_CLOSED);
+                        $this->resultError($result_obj, 'ERR_CLOSED', Result::ERR_CLOSED);
                         continue;
                     } else {
                         $header = Format::packDecodeHeader($result);
 
                         //错误的包头
                         if ($header == false) {
-                            $this->resultError($result_obj, Result::ERR_HEADER);
+                            $this->resultError($result_obj, 'ERR_HEADER', Result::ERR_HEADER);
                             continue;
                         }
 
                         if (Format::checkHeaderLength($header, $result) == false) {
-                            $this->resultError($result_obj, Result::ERR_LENGTH);
+                            $this->resultError($result_obj, 'ERR_LENGTH', Result::ERR_LENGTH);
                             continue;
                         }
 
                         if ($header['guid'] != $result_obj->requestId) {
-                            $this->resultError($result_obj, Result::ERR_GUID);
+                            $this->resultError($result_obj, 'ERR_GUID', Result::ERR_GUID);
                             continue;
                         }
 
@@ -185,7 +185,7 @@ class SOA {
 
                         //解包失败
                         if ($data === false) {
-                            $this->resultError($result_obj, Result::ERR_UNPACK);
+                            $this->resultError($result_obj, 'ERR_UNPACK', Result::ERR_UNPACK);
                             continue;
                         }
 
@@ -247,24 +247,24 @@ class SOA {
                     $result = $result_obj->socket->recv();
 
                     if (empty($result)) {
-                        $this->resultError($result_obj, Result::ERR_CLOSED);
+                        $this->resultError($result_obj, 'ERR_CLOSED', Result::ERR_CLOSED);
                         continue;
                     } else {
                         $header = Format::packDecodeHeader($result);
 
                         //错误的包头
                         if ($header == false) {
-                            $this->resultError($result_obj, Result::ERR_HEADER);
+                            $this->resultError($result_obj, 'ERR_HEADER', Result::ERR_HEADER);
                             continue;
                         }
 
                         if (Format::checkHeaderLength($header, $result) == false) {
-                            $this->resultError($result_obj, Result::ERR_LENGTH);
+                            $this->resultError($result_obj, 'ERR_LENGTH', Result::ERR_LENGTH);
                             continue;
                         }
 
                         if ($header['guid'] != $result_obj->requestId) {
-                            $this->resultError($result_obj, Result::ERR_GUID);
+                            $this->resultError($result_obj, 'ERR_GUID', Result::ERR_GUID);
                             continue;
                         }
 
@@ -272,7 +272,7 @@ class SOA {
 
                         //解包失败
                         if ($data === false) {
-                            $this->resultError($result_obj, Result::ERR_UNPACK);
+                            $this->resultError($result_obj, 'ERR_UNPACK', Result::ERR_UNPACK);
                             continue;
                         }
 
@@ -307,11 +307,11 @@ class SOA {
      * @param $list
      * @return $this
      */
+
     public function setServiceList(array $list)
     {
         if (empty($list)) {
-            trigger_error('service list is empty', E_USER_WARNING);
-            return false;
+            trigger_error('service list is empty', E_USER_ERROR);
         }
 
         $this->serviceList = $list;
@@ -449,9 +449,15 @@ class SOA {
         return intval(strval($us * 1000 * 1000) . rand(100, 999));
     }
 
-    protected function resultError(Result $result_obj, $erron)
+    /**
+     * @param Result $result_obj
+     * @param $message
+     * @param $erron
+     */
+    protected function resultError(Result $result_obj, $message, $erron)
     {
         $result_obj->code = $erron;
+        $result_obj->message = $message;
         unset(self::$requestList[$result_obj->requestId], $result_obj->socket);
     }
 
@@ -470,7 +476,7 @@ class Result
 {
     public $id;
     public $code = self::ERR_NO_READY;
-    public $msg;
+    public $message = 'OK';
     public $data = null;
     public $index;
 
