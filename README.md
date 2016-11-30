@@ -6,6 +6,7 @@ swoole rpc
 > * Swoole 1.8.x+
 > * PHP 5.4+
 > * Composer
+> * Redis
 
 ## Install
 
@@ -42,19 +43,19 @@ class Discovery extends Server {
      * @param int $from_id
      * @param array $data
      * @param array $header
-     * @return mixed|void
+     * @return array
      */
     public function doWork(\swoole_server $server, $fd, $from_id, $data, $header)
     {
 
         if (empty($data['host']) || empty($data['port']) || empty($data['time'])) {
-            return $this->sendMessage($fd, Format::packFormat('', '', self::ERR_PARAMS), $header['type']);
+            return Format::packFormat('', '', self::ERR_PARAMS);
         }
 
         //todo 注册服务
         (new ServiceList($this->config['redis']))->register($data['service'], $data['host'], $data['port'], $data['time']);
 
-        return $this->sendMessage($fd, Format::packFormat('', 'register success'), $header['type'], $header['guid']);
+        return Format::packFormat('', 'register success');
     }
 
 }
@@ -120,7 +121,7 @@ class DemoServer extends Server
 
     public function doWork(\swoole_server $server, $fd, $from_id, $data, $header)
     {
-        $this->sendMessage($fd, \Swoole\Packet\Format::packFormat($data['params']), $header['type'], $header['guid']);
+        return Format::packFormat($data['params']);
     }
 
     public function doTask(\swoole_server $server, $task_id, $from_id, $data)
@@ -198,7 +199,7 @@ $call1 = $client->call('11', ['test1']);
 $call2 = $client->call('22', ['test2']);
 $call3 = $client->call('33', ['test3']);
 $client->resultData();
-var_dump($call1->data, $call2->data, $call3->data);
+var_dump($call1->data, $call1->code, $call1->message, $call2->data, $call3->data);
 
 $task_call = $client->task('11', ['test1']);
 var_dump($task_call->getTaskResult());
@@ -209,9 +210,9 @@ var_dump($task_call->getTaskResult());
 ```php
 $client = new \Swoole\Client\Client();
 $client->connect(host, port);
-$result = $client->send(\Swoole\Packet\Format::packEncode([
+$result = $client->send([
     'params'   => 'client test'
-]));
+]);
 var_dump($result);
 
 ```
