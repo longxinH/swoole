@@ -15,7 +15,7 @@ abstract class ServerCallback implements ServerCallbackInterface {
         }
     }
     
-    public function onStart(\swoole_server $server)
+    final public function onStart(\swoole_server $server)
     {
         file_put_contents($this->masterPidFile, $server->master_pid);
         file_put_contents($this->managerPidFile, $server->manager_pid);

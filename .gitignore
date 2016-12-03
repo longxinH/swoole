@@ -4,3 +4,5 @@ vendor/
 .idea/
 
 *.pid
+
+composer.lock

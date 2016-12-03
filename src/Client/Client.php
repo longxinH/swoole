@@ -135,9 +135,9 @@ class Client implements ClientInterface {
     {
         return json_encode(
             [
-                'code'  => $erron,
-                'msg'   => $message,
-                'data'  => ''
+                'code'      => $erron,
+                'message'   => $message,
+                'data'      => ''
             ]
         );
     }
