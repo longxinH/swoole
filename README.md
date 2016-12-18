@@ -90,7 +90,7 @@ mode = SWOOLE_PROCESS
 ;socket类型
 sock_type = SWOOLE_SOCK_TCP
 ;pid存放路径
-pid_path = '../run'
+pid_path = PROJECT_ROOT'/run'
 
 [swoole]
 dispatch_mode = 3
@@ -162,7 +162,7 @@ mode = SWOOLE_PROCESS
 ;socket类型
 sock_type = SWOOLE_SOCK_TCP
 ;pid存放路径
-pid_path = '../run'
+pid_path = PROJECT_ROOT'/run'
 
 [monitor]
 ;服务上报地址
