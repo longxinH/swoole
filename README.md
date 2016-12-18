@@ -60,7 +60,12 @@ class Discovery extends Server {
 
 }
 
-$server = new Discovery('../config/monitor.ini');
+/*
+ * 项目所在目录
+ */
+define('PROJECT_ROOT', dirname(__DIR__));
+
+$server = new Discovery('../config/monitor.ini', 'discovery');
 $server->run();
 ```
 
@@ -130,7 +135,12 @@ class DemoServer extends Server
     }
 }
 
-$server = new DemoServer('servicepath/config/swoole.ini');
+/*
+ * 项目所在目录
+ */
+define('PROJECT_ROOT', dirname(__DIR__));
+
+$server = new DemoServer('servicepath/config/swoole.ini', 'rpc');
 $server->setServiceName('userService');
 $server->run();
 
