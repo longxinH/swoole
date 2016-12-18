@@ -17,19 +17,34 @@ abstract class ServerCallback implements ServerCallbackInterface {
     
     final public function onStart(\swoole_server $server)
     {
+        swoole_set_process_name('swoole_' . $this->processName . ': master');
+
         file_put_contents($this->masterPidFile, $server->master_pid);
         file_put_contents($this->managerPidFile, $server->manager_pid);
+    }
+
+    final public function onManagerStart(\swoole_server $server) {
+        swoole_set_process_name('swoole_' . $this->processName . ': manager');
+    }
+
+    final public function onWorkerStart(\swoole_server $server, $workerId) {
+        $istask = $server->taskworker;
+        if (!$istask) {
+            //worker
+            swoole_set_process_name('swoole_' . $this->processName . ': worker ' . $workerId);
+        } else {
+            //task
+            swoole_set_process_name('swoole_' . $this->processName . ': task ' . $workerId);
+        }
+    }
+
+    final public function onManagerStop(\swoole_server $server) {
+        $server->shutdown();
     }
 
     public function onConnect(\swoole_server $server, $fd, $from_id) {}
 
     public function onClose(\swoole_server $server, $fd, $from_id) {}
-
-    public function onManagerStart(\swoole_server $server) {}
-    
-    public function onManagerStop(\swoole_server $server) {}
-
-    public function onWorkerStart(\swoole_server $server, $workerId) {}
     
     public function onShutdown(\swoole_server $server) {}
     

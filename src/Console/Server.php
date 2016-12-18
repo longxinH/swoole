@@ -44,7 +44,7 @@ class Server {
             return false;
 
         //SIGTERM  15  SIGKILL 9
-        } else if (!posix_kill($pid, SIGKILL)) {
+        } else if (!posix_kill($pid, SIGTERM)) {
             self::log($process_name . ': send signal to master failed');
             self::log($process_name . ': stop [FAIL]');
 

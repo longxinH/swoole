@@ -82,12 +82,18 @@ abstract class Server extends ServerCallback implements ServerInterface
     const ERR_CALL      = 9206; //执行错误
     
 
-    public function __construct($config)
+    public function __construct($config, $process_name = 'swoole')
     {
         $this->configure($config);
 
-        $this->masterPidFile = $this->pidPath . '/' . $this->processName . '.master.pid';
-        $this->managerPidFile = $this->pidPath . '/' . $this->processName . '.manager.pid';
+        $file_name = $process_name . '-server-' . $this->host . '-' . $this->port;
+        $this->masterPidFile = $this->pidPath . '/' . $file_name . '.master.pid';
+        $this->managerPidFile = $this->pidPath . '/' . $file_name . '.manager.pid';
+
+        $this->processName = $process_name;
+//$this->processName = 'swoole-server-' . $this->host . '-' . $this->port;
+        //$this->masterPidFile = $this->pidPath . '/' . $this->processName . '.master.pid';
+        //$this->managerPidFile = $this->pidPath . '/' . $this->processName . '.manager.pid';
     }
 
     public function configure($config)
@@ -138,7 +144,7 @@ abstract class Server extends ServerCallback implements ServerInterface
             mkdir($this->pidPath, 0700);
         }
 
-        $this->processName = 'swoole-server-' . $this->host . '-' . $this->port;
+        //$this->processName = 'swoole-server-' . $this->host . '-' . $this->port;
         
         $config['swoole']['package_body_offset'] = Format::HEADER_SIZE;
         $this->config = $config;
@@ -234,15 +240,20 @@ abstract class Server extends ServerCallback implements ServerInterface
     {
         $server = $this;
         $process = new \swoole_process(function (\swoole_process $process) use ($monitor, $server) {
-            $client = new Client($monitor['sock_type']);
-            $client->connect($monitor['host'], $monitor['port']);
             while (true) {
+                $client = new Client($monitor['sock_type']);
+                $client->connect($monitor['host'], $monitor['port']);
+
+                $ip = $server->getServerHost();
+                swoole_set_process_name('swoole_' . $this->processName . ': monitor (' . $ip . ')');
                 $client->send([
                     'service'   => self::$serviceName,
-                    'host'      => $server->getServerHost(),
+                    'host'      => $ip,
                     'port'      => $server->getPort(),
                     'time'      => time()
                 ]);
+
+                $client->close();
 
                 sleep(10);
             }
