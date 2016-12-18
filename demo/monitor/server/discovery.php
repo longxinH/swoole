@@ -38,5 +38,10 @@ class Discovery extends Server {
 
 }
 
-$server = new Discovery('../config/monitor.ini');
+/*
+ * 项目所在目录
+ */
+define('PROJECT_ROOT', dirname(__DIR__));
+
+$server = new Discovery('../config/monitor.ini', 'discovery');
 $server->run();

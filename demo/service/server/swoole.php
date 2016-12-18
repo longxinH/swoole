@@ -41,6 +41,11 @@ class DemoServer extends Server {
 
 }
 
-$server = new DemoServer('../config/swoole.ini');
+/*
+ * 项目所在目录
+ */
+define('PROJECT_ROOT', dirname(__DIR__));
+
+$server = new DemoServer('../config/swoole.ini', 'rpc');
 $server->run();
 
