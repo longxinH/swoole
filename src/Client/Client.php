@@ -26,7 +26,7 @@ class Client implements ClientInterface {
         $mode = intval($mode);
         $async = intval($async);
 
-        if ($mode == SWOOLE_SOCK_TCP && $async = SWOOLE_SOCK_SYNC && $keep) {
+        if ($mode == SWOOLE_SOCK_TCP && $async == SWOOLE_SOCK_SYNC && $keep) {
             $this->client = new \swoole_client($mode | SWOOLE_KEEP, $async);
         } else {
             $this->client = new \swoole_client($mode, $async);
