@@ -89,10 +89,10 @@ class Format {
      * 打包
      * @param $data
      * @param int $protocol_mode
-     * @param string $guid
+     * @param int $guid
      * @return string
      */
-    public static function packEncode($data, $protocol_mode = Serialize::PROTOCOLS_MODE_JSON, $guid = '')
+    public static function packEncode($data, $protocol_mode = Serialize::PROTOCOLS_MODE_JSON, $guid = 0)
     {
         switch ($protocol_mode) {
             case Json::PROTOCOLS_MODE_JSON :

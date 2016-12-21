@@ -133,13 +133,11 @@ class Client implements ClientInterface {
 
     private function resultError($message, $erron)
     {
-        return json_encode(
-            [
-                'code'      => $erron,
-                'message'   => $message,
-                'data'      => ''
-            ]
-        );
+        return [
+            'code'      => $erron,
+            'message'   => $message,
+            'data'      => ''
+        ];
     }
 
 }
