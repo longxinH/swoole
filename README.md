@@ -194,7 +194,7 @@ daemonize = 0
 > * ```$client->setServiceList(serverlist)``` 需要配置可用的服务列表
 > * ```$client->call(string $api, array $params, int $mode)``` 下发任务给服务端
 > * ```$client->task(string $api, array $params, int $mode)``` 下发任务给服务端，服务端使用 ```onTask``` 方式执行，用于处理一些逻辑时间长的任务，客户端可不关心执行结果
-> * ```$client->result(int|float $timeout)``` 获取请求结果   resultData／resultTaskData 保留兼容旧版本
+> * ```$client->result(int|float $timeout)``` 获取请求结果   ```resultData```／```resultTaskData``` 保留兼容旧版本
 
 ```php
 $client = new \Swoole\Client\SOA('config/client.ini');
