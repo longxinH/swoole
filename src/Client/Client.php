@@ -6,7 +6,7 @@ use Swoole\Packet\Format;
 
 class Client implements ClientInterface {
 
-    const ERR_UNPACK     = 8006; //解包失败了
+    const ERR_UNPACK     = 8006; //解包失败
     const ERR_HEADER     = 8007; //错误的协议头
     const ERR_LENGTH     = 8008; //错误的长度
 
@@ -75,7 +75,7 @@ class Client implements ClientInterface {
                 return $this->resultError('ERR_HEADER', self::ERR_HEADER);
             }
 
-            if (Format::checkHeaderLength($header, $result) == false) {
+            if (Format::checkHeaderLength($header['length'], $result) == false) {
                 return $this->resultError('ERR_LENGTH', self::ERR_LENGTH);
             }
 
@@ -136,7 +136,7 @@ class Client implements ClientInterface {
         return [
             'code'      => $erron,
             'message'   => $message,
-            'data'      => ''
+            'data'      => null
         ];
     }
 

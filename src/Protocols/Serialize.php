@@ -28,8 +28,7 @@ class Serialize implements ProtocolInterface {
     public static function encode($value, $guid)
     {
         $value = serialize($value);
-        return pack('N', strlen($value)) . pack('N', self::PROTOCOLS_MODE_SERIALIZE) . pack('N', $guid) . $value;
-        //return pack('NNN', strlen($value), self::PROTOCOLS_MODE_SERIALIZE, $guid) . $value;
+        return pack('NNN', strlen($value), self::PROTOCOLS_MODE, $guid) . $value;
     }
 
     /**

@@ -11,7 +11,7 @@ class Format {
      * 协议包头长度
      */
     const HEADER_SIZE = 12;
-    
+
     /**
      * 拼装返回数据
      * @param string $data
@@ -48,14 +48,14 @@ class Format {
 
     /**
      * 检测包头长度
-     * @param array $header
+     * @param $length
      * @param $pack
      * @return bool
      */
-    public static function checkHeaderLength(array $header, $pack)
+    public static function checkHeaderLength($length, $pack)
     {
         $data = substr($pack, self::HEADER_SIZE);
-        if ($header['length'] != strlen($data)) {
+        if ($length != strlen($data)) {
             return false;
         }
         
@@ -71,10 +71,10 @@ class Format {
     public static function packDecode($pack, $protocol_mode)
     {
         switch ($protocol_mode) {
-            case Json::PROTOCOLS_MODE_JSON :
+            case Json::PROTOCOLS_MODE :
                 $pack = Json::decode($pack);
                 break;
-            case Serialize::PROTOCOLS_MODE_SERIALIZE :
+            case Serialize::PROTOCOLS_MODE :
                 $pack = Serialize::decode($pack);
                 break;
             default:
@@ -92,13 +92,13 @@ class Format {
      * @param int $guid
      * @return string
      */
-    public static function packEncode($data, $protocol_mode = Serialize::PROTOCOLS_MODE_JSON, $guid = 0)
+    public static function packEncode($data, $protocol_mode = Json::PROTOCOLS_MODE, $guid = 0)
     {
         switch ($protocol_mode) {
-            case Json::PROTOCOLS_MODE_JSON :
+            case Json::PROTOCOLS_MODE :
                 $data = Json::encode($data, $guid);
                 break;
-            case Serialize::PROTOCOLS_MODE_SERIALIZE :
+            case Serialize::PROTOCOLS_MODE :
                 $data = Serialize::encode($data, $guid);
                 break;
             default:

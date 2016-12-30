@@ -5,8 +5,7 @@ namespace Swoole\Server;
 use Swoole\Client\Client;
 use Swoole\Packet\Format;
 
-abstract class Server extends ServerCallback implements ServerInterface
-{
+abstract class Server extends ServerCallback implements ServerInterface {
     /**
      * @var Server
      */
@@ -91,9 +90,6 @@ abstract class Server extends ServerCallback implements ServerInterface
         $this->managerPidFile = $this->pidPath . '/' . $file_name . '.manager.pid';
 
         $this->processName = $process_name;
-//$this->processName = 'swoole-server-' . $this->host . '-' . $this->port;
-        //$this->masterPidFile = $this->pidPath . '/' . $this->processName . '.master.pid';
-        //$this->managerPidFile = $this->pidPath . '/' . $this->processName . '.manager.pid';
     }
 
     public function configure($config)
@@ -144,8 +140,6 @@ abstract class Server extends ServerCallback implements ServerInterface
             mkdir($this->pidPath, 0700);
         }
 
-        //$this->processName = 'swoole-server-' . $this->host . '-' . $this->port;
-        
         $config['swoole']['package_body_offset'] = Format::HEADER_SIZE;
         $this->config = $config;
     }

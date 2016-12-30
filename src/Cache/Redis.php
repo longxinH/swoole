@@ -21,7 +21,10 @@ class Redis implements CacheInterface {
     {
         try {
             $this->redis = new \Redis();
-            $this->redis->connect($host, $port);
+            if ($this->redis->connect($host, $port) === false) {
+                throw new \Exception("redis connect error.");
+            }
+
             if ($auth) {
                 $this->redis->auth($auth);
             }

@@ -29,7 +29,7 @@ class Json implements ProtocolInterface {
     public static function encode($value, $guid)
     {
         $value = json_encode($value);
-        return pack('NNN', strlen($value), self::PROTOCOLS_MODE_JSON, $guid) . $value;
+        return pack('NNN', strlen($value), self::PROTOCOLS_MODE, $guid) . $value;
     }
 
     /**

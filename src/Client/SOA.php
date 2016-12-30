@@ -3,16 +3,15 @@
 namespace Swoole\Client;
 
 use Swoole\Packet\Format;
+use Swoole\Protocols\Json;
 
 class SOA {
 
-    protected static $requestList = [];
-
     /**
-     * 投递任务列表
+     * 请求列表
      * @var array
      */
-    protected static $taskList= [];
+    protected static $requestList = [];
 
     /**
      * @var array
@@ -30,32 +29,26 @@ class SOA {
     protected $config = [];
 
     /**
-     * @var string
+     * @var int
      */
     protected $guid;
 
     /**
+     * 超时
      * @var int
      */
     protected $timeout = 1;
 
     /**
-     * @var int
+     * 服务器
+     * @var array
      */
-    protected $requestIndex = 0;
+    protected $connections = [];
 
     /**
-     * 同步模式
-     * @var int
+     * SOA constructor.
+     * @param string $config
      */
-    const SYNC_MODE = 1;
-
-    /**
-     * 异步模式
-     * @var int
-     */
-    const ASYNC_MODE = 2;
-
     public function __construct($config = '')
     {
         if ($config) {
@@ -70,7 +63,7 @@ class SOA {
      * @param int $mode
      * @return bool|Result
      */
-    public function call($api, $params = [], $mode = 2)
+    public function call($api, $params = [], $mode = Json::PROTOCOLS_MODE)
     {
         $this->guid = $this->generateGuid();
 
@@ -86,6 +79,7 @@ class SOA {
         $client = $this->request($send_data);
 
         if ($client) {
+            $this->setResultStatus($client, 'WAIT_RECV', Result::WAIT_RECV);
             self::$requestList[$this->guid] = $client;
         }
 
@@ -99,7 +93,7 @@ class SOA {
      * @param int $mode
      * @return bool|Result
      */
-    public function task($api, $params = [], $mode = 2)
+    public function task($api, $params = [], $mode = Json::PROTOCOLS_MODE)
     {
         $this->guid = $this->generateGuid();
 
@@ -116,30 +110,33 @@ class SOA {
         $client = $this->request($send_data);
 
         if ($client) {
-            self::$taskList[$this->guid] = $client;
+            $this->setResultStatus($client, 'SUCCESS_TASK', Result::SUCCESS_TASK);
+            self::$requestList[$this->guid] = $client;
         }
 
         return $client;
     }
 
     /**
-     * 获取异步结果
-     * @param int $timeout
+     * 获取结果
+     * @param float $timeout
      * @return int
      */
-    public function resultData($timeout = 1)
+    public function result($timeout = 0.5)
     {
+        $start = microtime(true);
         $success_num = 0;
-        while (true) {
-            $write = $error = $read = [];
 
-            if (empty(self::$requestList)) {
-                break;
-            }
+        while (count(self::$requestList) > 0) {
+            $write = $error = $read = [];
 
             foreach (self::$requestList as $_obj) {
                 if ($_obj->socket !== null) {
-                    $read[$_obj->requestId] = $_obj->socket;
+                    $hash = spl_object_hash($_obj->socket);
+
+                    if (!isset($read[$hash])) {
+                        $read[$hash] = $_obj->socket;
+                    }
                 }
             }
 
@@ -151,155 +148,116 @@ class SOA {
 
             if ($n > 0) {
                 //可读
-                foreach ($read as $key => $sock) {
+                foreach ($read as $sock) {
 
-                    /**
-                     * @var $result_obj Result
-                     */
-                    $result_obj = self::$requestList[$key];
-                    $result = $result_obj->socket->recv();
+                    $result = $sock->recv();
 
                     if (empty($result)) {
-                        $this->resultError($result_obj, 'ERR_CLOSED', Result::ERR_CLOSED);
+                        foreach(self::$requestList as $retObj) {
+                            if ($retObj->socket == $sock) {
+                                $this->setResultStatus($retObj, 'ERR_CLOSED', Result::ERR_CLOSED);
+                                $this->resultError($retObj);
+                                $this->closeConnection($retObj->server_host, $retObj->server_port);
+                            }
+                        }
+
                         continue;
-                    } else {
-                        $header = Format::packDecodeHeader($result);
 
-                        //错误的包头
-                        if ($header == false) {
-                            $this->resultError($result_obj, 'ERR_HEADER', Result::ERR_HEADER);
-                            continue;
-                        }
-
-                        if (Format::checkHeaderLength($header, $result) == false) {
-                            $this->resultError($result_obj, 'ERR_LENGTH', Result::ERR_LENGTH);
-                            continue;
-                        }
-
-                        if ($header['guid'] != $result_obj->requestId) {
-                            $this->resultError($result_obj, 'ERR_GUID', Result::ERR_GUID);
-                            continue;
-                        }
-
-                        $data = Format::packDecode($result, $header['type']);
-
-                        //解包失败
-                        if ($data === false) {
-                            $this->resultError($result_obj, 'ERR_UNPACK', Result::ERR_UNPACK);
-                            continue;
-                        }
-
-                        if ($data['code'] != 0) {
-                            $result_obj->code = $data['code'];
-                            $result_obj->data = null;
-                            continue;
-                        }
-
-                        $result_obj->code = 0;
-                        $result_obj->data = $data['data'];
-
-                        $success_num++;
-                        unset(self::$requestList[$result_obj->requestId]);
+                    } else if ($result === false) {
+                        continue;
                     }
+
+                    $header = Format::packDecodeHeader($result);
+
+                    //错误的包头
+                    if ($header === false) {
+                        trigger_error(__CLASS__ . ' error header [' . substr($header, 0, Format::HEADER_SIZE) . '] . ', E_USER_WARNING);
+                        continue;
+                    }
+
+                    //不在请求列表中，错误的请求串号
+                    if (!isset(self::$requestList[$header['guid']])) {
+                        trigger_error(__CLASS__ . " error guid [{$header['guid']}].", E_USER_WARNING);
+                        continue;
+                    }
+
+                    $retObj = self::$requestList[$header['guid']];
+
+                    if (Format::checkHeaderLength($header['length'], $result) == false) {
+                        $this->setResultStatus($retObj, 'ERR_LENGTH', Result::ERR_LENGTH);
+                        $this->taskError($retObj);
+                        continue;
+                    }
+
+                    $data = Format::packDecode($result, $header['type']);
+
+                    //解包失败
+                    if ($data === false) {
+                        $this->setResultStatus($retObj, 'ERR_UNPACK', Result::ERR_UNPACK);
+                        $this->resultError($retObj);
+                        continue;
+                    }
+
+                    //投递task成功
+                    if ($data['code'] == Result::SUCCESS_TASK) {
+                        $this->setResultStatus($retObj, 'WAIT_TASK_RECV', Result::WAIT_TASK_RECV);
+                        continue;
+                    }
+
+                    if ($data['code'] != 0) {
+                        $this->setResultStatus($retObj, $data['message'], $data['code']);
+                        continue;
+                    }
+
+                    $this->setResultStatus($retObj, 'OK', 0, $data['data']);
+
+                    $success_num++;
+                    unset(self::$requestList[$header['guid']]);
                 }
             }
+
+            //发生超时
+            if ((microtime(true) - $start) > $timeout) {
+                foreach (self::$requestList as $retObj) {
+                    if ($retObj->socket->isConnected()) {
+                        if ($retObj->is_task === false) {
+                            $this->setResultStatus($retObj, 'ERR_TIMEOUT', Result::ERR_TIMEOUT);
+                        }
+                    } else {
+                        $this->setResultStatus($retObj, 'ERR_CONNECT', Result::ERR_CONNECT);
+                    }
+
+                    $this->resultError($retObj);
+                }
+
+                //清空当前列表
+                self::$requestList = [];
+                return $success_num;
+            }
         }
-        
+
         return $success_num;
     }
 
     /**
-     * 注意使用该方法  task主要用于处理  逻辑时间长  并且不需要等待返回的处理
-     * 如果逻辑时间过长  使用该方法  会造成同步等待
-     * @param int $timeout
+     * 获取异步结果
+     * @param $timeout
      * @return int
      */
-    public function resultTaskData($timeout = 1)
+    public function resultData($timeout = 0.5)
     {
-        $success_num = 0;
-        while (true) {
-            $write = $error = $read = [];
+        return $this->result($timeout);
+    }
 
-            if (empty(self::$taskList)) {
-                break;
-            }
-
-            foreach (self::$taskList as $_obj) {
-                if ($_obj->socket !== null) {
-                    $read[$_obj->requestId] = $_obj->socket;
-                }
-            }
-
-            if (empty($read)) {
-                break;
-            }
-
-            $n = swoole_client_select($read, $write, $error, $timeout);
-
-            if ($n > 0) {
-                //可读
-                foreach ($read as $key => $sock) {
-
-                    /**
-                     * @var $result_obj Result
-                     */
-                    $result_obj = self::$taskList[$key];
-                    $result = $result_obj->socket->recv();
-
-                    if (empty($result)) {
-                        $this->resultError($result_obj, 'ERR_CLOSED', Result::ERR_CLOSED);
-                        continue;
-                    } else {
-                        $header = Format::packDecodeHeader($result);
-
-                        //错误的包头
-                        if ($header == false) {
-                            $this->resultError($result_obj, 'ERR_HEADER', Result::ERR_HEADER);
-                            continue;
-                        }
-
-                        if (Format::checkHeaderLength($header, $result) == false) {
-                            $this->resultError($result_obj, 'ERR_LENGTH', Result::ERR_LENGTH);
-                            continue;
-                        }
-
-                        if ($header['guid'] != $result_obj->requestId) {
-                            $this->resultError($result_obj, 'ERR_GUID', Result::ERR_GUID);
-                            continue;
-                        }
-
-                        $data = Format::packDecode($result, $header['type']);
-
-                        //解包失败
-                        if ($data === false) {
-                            $this->resultError($result_obj, 'ERR_UNPACK', Result::ERR_UNPACK);
-                            continue;
-                        }
-
-                        //投递task成功
-                        if ($data['code'] == Result::SUCCESS_TASK) {
-                            $result_obj->code = Result::WAIT_TASK_RES;
-                            $result_obj->data = null;
-                            continue;
-                        }
-
-                        if ($data['code'] != 0) {
-                            $result_obj->code = $data['code'];
-                            $result_obj->data = null;
-                            continue;
-                        }
-
-                        $result_obj->code = 0;
-                        $result_obj->data = $data['data'];
-
-                        $success_num++;
-                        unset(self::$taskList[$result_obj->requestId]);
-                    }
-                }
-            }
-        }
-
-        return $success_num;
+    /**
+     * 注意使用该方法  task主要用于处理  逻辑时间长  并且不需要等待返回的处理
+     * 如果逻辑时间过长  使用该方法
+     * @param $timeout
+     * @return int
+     */
+    public function resultTaskData($timeout = 0.5)
+    {
+        return $this->result($timeout);
     }
 
     /**
@@ -386,22 +344,22 @@ class SOA {
     protected function request($send_data)
     {
         $result_obj = new Result($this);
-        $result_obj->index = $this->requestIndex ++;
-        
+
         if ($this->connectToServer($result_obj) === false) {
             $result_obj->code = Result::ERR_CONNECT;
+            $result_obj->message = 'ERR_CONNECT';
             return false;
         }
-        
+
         $result_obj->requestId = $this->guid;
+        $result_obj->is_task = isset($send_data['cmd']) && $send_data['cmd'] == 'task' ? true : false;
 
         if ($result_obj->socket->send($send_data) === false) {
             $result_obj->code = Result::ERR_SEND;
+            $result_obj->message = 'ERR_SEND';
             unset($result_obj->socket);
             return false;
         }
-
-        //self::$requestList[$this->guid] = $result_obj;
         
         return $result_obj;
     }
@@ -413,6 +371,28 @@ class SOA {
      */
     protected function connectToServer(Result $result_obj)
     {
+        while (count($this->serviceList) > 0) {
+            $server = $this->getServer();
+            $socket = $this->getConnection($server['host'], $server['port']);
+            //连接失败，服务器节点不可用
+            if ($socket === false) {
+                $this->onConnectServerFailed($server);
+            } else {
+                $result_obj->socket = $socket;
+                $result_obj->server_host = $server['host'];
+                $result_obj->server_port = $server['port'];
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function getServer()
+    {
+        if (empty($this->serviceList)) {
+            throw new \Exception("servers config empty.");
+        }
 
         if (empty($this->currentService)) {
             $key = array_rand($this->serviceList);
@@ -422,22 +402,82 @@ class SOA {
             $connect_info = $this->serviceList[$this->currentService][$key];
         }
 
-        $key = $connect_info['host'] . ':' . $connect_info['port'] . '-' . $result_obj->index;
-        $client = new \swoole_client(SWOOLE_SOCK_TCP | SWOOLE_KEEP, SWOOLE_SOCK_SYNC, $key);
-        if ($this->config) {
-            $client->set(isset($this->config['swoole']) ? $this->config['swoole'] : $this->config);
+        return $connect_info;
+    }
+
+    protected function getConnection($host, $port)
+    {
+        $ret = false;
+        $conn_key = $host . ':' . $port;
+        if (isset($this->connections[$conn_key])) {
+            return $this->connections[$conn_key];
         }
 
-        $ret = $client->connect($connect_info['host'], $connect_info['port'], $this->timeout);
+        $socket = new \swoole_client(SWOOLE_SOCK_TCP | SWOOLE_KEEP, SWOOLE_SOCK_SYNC);
+        if ($this->config) {
+            $socket->set(isset($this->config['swoole']) ? $this->config['swoole'] : $this->config);
+        }
 
-        if ($ret === false) {
+        /**
+         * 尝试重连一次
+         */
+        for ($i = 0; $i < 2; $i++) {
+            $ret = $socket->connect($host, $port, $this->timeout);
+            if ($ret === false && ($socket->errCode == 114 || $socket->errCode == 115)) {
+                //强制关闭，重连
+                $socket->close(true);
+                continue;
+            } else {
+                break;
+            }
+        }
+
+        if ($ret) {
+            $this->connections[$conn_key] = $socket;
+            return $socket;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * 连接服务器失败
+     * @param $server
+     * @return bool
+     */
+    function onConnectServerFailed($server)
+    {
+        foreach($this->serviceList as $k => $v) {
+            if ($v['host'] == $server['host'] && $v['port'] == $server['port']) {
+                //从Server列表中移除
+                unset($this->serviceList[$k]);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 关闭连接
+     * @param $host
+     * @param $port
+     * @return bool
+     */
+    protected function closeConnection($host, $port)
+    {
+        $conn_key = $host . ':' . $port;
+        if (!isset($this->connections[$conn_key])) {
             return false;
         }
 
-        $result_obj->socket = $client;
-
+        $socket = $this->connections[$conn_key];
+        $socket->close();
+        unset($this->connections[$conn_key]);
         return true;
     }
+
+
 
     /**
      * 生成唯一请求id
@@ -450,15 +490,34 @@ class SOA {
     }
 
     /**
+     * 错误响应
+     * @param Result $result_obj
+     */
+    protected function resultError(Result $result_obj)
+    {
+        unset(self::$requestList[$result_obj->requestId]);
+    }
+
+    /**
+     * task错误响应
+     * @param Result $result_obj
+     */
+    protected function taskError(Result $result_obj)
+    {
+        unset(self::$taskList[$result_obj->requestId]);
+    }
+
+    /**
      * @param Result $result_obj
      * @param $message
      * @param $erron
+     * @param null $data
      */
-    protected function resultError(Result $result_obj, $message, $erron)
+    protected function setResultStatus(Result $result_obj, $message, $erron, $data = null)
     {
         $result_obj->code = $erron;
         $result_obj->message = $message;
-        unset(self::$requestList[$result_obj->requestId], $result_obj->socket);
+        $result_obj->data = $data;
     }
 
     protected function clean()
@@ -476,9 +535,8 @@ class Result
 {
     public $id;
     public $code = self::ERR_NO_READY;
-    public $message = 'OK';
+    public $message = 'ERR_NO_READY';
     public $data = null;
-    public $index;
 
     /**
      * 请求串号
@@ -491,11 +549,30 @@ class Result
     public $socket = null;
 
     /**
+     * 服务器的IP地址
+     * @var string
+     */
+    public $server_host;
+
+    /**
+     * 服务器的端口
+     * @var int
+     */
+    public $server_port;
+
+    /**
+     * 是否task
+     * @var bool
+     */
+    public $is_task = false;
+
+    /**
      * @var SOA
      */
     protected $soa_client;
 
-    const WAIT_TASK_RES  = 7001; //等待投递结果
+    const WAIT_TASK_RECV  = 7001; //等待投递结果
+    const WAIT_RECV       = 7002; //等待接收数据
 
     const ERR_NO_READY   = 8001; //未就绪
     const ERR_CONNECT    = 8002; //连接服务器失败
@@ -518,19 +595,21 @@ class Result
 
     public function getResult($timeout = 1)
     {
-        if ($this->code == self::ERR_NO_READY)
+        if ($this->code == self::WAIT_RECV)
         {
             $this->soa_client->resultData($timeout);
         }
+
         return $this->data;
     }
 
-    public function getTaskResult($timeout = 1)
+    public function getTaskResult()
     {
-        if ($this->code == self::ERR_NO_READY)
+        if ($this->code == self::SUCCESS_TASK || $this->code == self::WAIT_TASK_RECV)
         {
-            $this->soa_client->resultTaskData($timeout);
+            $this->soa_client->resultTaskData();
         }
+
         return $this->data;
     }
 
