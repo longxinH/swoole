@@ -190,11 +190,10 @@ daemonize = 0
 
 ###rpc_path/client/client.php RPC客户端
 ####SOA client 服务化客户端
-> * ```$client->setService(string $name)``` 设置需要调用的服务名称，会根据服务发现生成配置文件，连接到对应的服务端
 > * ```$client->setServiceList(serverlist)``` 需要配置可用的服务列表
-> * ```$client->call(string $api, array $params, int $mode)``` 下发任务给服务端
-> * ```$client->task(string $api, array $params, int $mode)``` 下发任务给服务端，服务端使用 ```onTask``` 方式执行，用于处理一些逻辑时间长的任务，客户端可不关心执行结果
-> * ```$client->result(int|float $timeout)``` 获取请求结果   ```resultData```／```resultTaskData``` 保留兼容旧版本
+> * ```$client->call(string $api, array $params, string $service, int $mode)``` 下发任务给服务端， ```$service``` 用于多服务情况下，指定调用某服务
+> * ```$client->task(string $api, array $params, string $service, int $mode)``` 下发任务给服务端，服务端使用 ```onTask``` 方式执行，用于处理一些逻辑时间长的任务，客户端可不关心执行结果
+> * ```$client->result(int|float $timeout)``` 获取请求结果 
 
 ```php
 $client = new \Swoole\Client\SOA('config/client.ini');
@@ -206,14 +205,15 @@ $client->setServiceList(
 //设置调用的服务列表
 $client->setService('userservice');
 
-$call1 = $client->call('11', ['test1']);
-$call2 = $client->call('22', ['test2']);
-$call3 = $client->call('33', ['test3']);
-$client->resultData();
-var_dump($call1->data, $call1->code, $call1->message, $call2->data, $call3->data);
+$call1 = $client->call('/api/v1/', ['test1']);
+$task_call = $client->task('/api/v1/task', ['task-test1']);
+$call2 = $client->call('/api/v1.1/', ['test2']);
+$call3 = $client->call('/api/v1.2/', ['test3']);
+$client->result();
+var_dump($call1->message, $call2->message, $call3->message, $task_call->message);
 
-$task_call = $client->task('11', ['test1']);
-var_dump($task_call->getTaskResult());
+$task_call2 = $client->task('/api/v1/task', ['task-test2']);
+var_dump($task_call2->result());
 
 ```
 
