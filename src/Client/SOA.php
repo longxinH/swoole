@@ -19,14 +19,14 @@ class SOA {
     protected $serviceList = [];
 
     /**
-     * @var string
-     */
-    protected $currentService = 'base';
-
-    /**
      * @var array
      */
     protected $config = [];
+
+    /**
+     * @var string
+     */
+    protected $currentService;
 
     /**
      * @var int
@@ -60,10 +60,11 @@ class SOA {
      * 发送请求
      * @param $api
      * @param array $params
+     * @param string $service
      * @param int $mode
      * @return bool|Result
      */
-    public function call($api, $params = [], $mode = Json::PROTOCOLS_MODE)
+    public function call($api, $params = [], $service = 'base', $mode = Json::PROTOCOLS_MODE)
     {
         $this->guid = $this->generateGuid();
 
@@ -76,7 +77,7 @@ class SOA {
             $this->guid
         );
 
-        $client = $this->request($send_data);
+        $client = $this->request($send_data, $service);
 
         if ($client) {
             $this->setResultStatus($client, 'WAIT_RECV', Result::WAIT_RECV);
@@ -90,10 +91,11 @@ class SOA {
      * 投递到task处理
      * @param $api
      * @param array $params
+     * @param string $service
      * @param int $mode
      * @return bool|Result
      */
-    public function task($api, $params = [], $mode = Json::PROTOCOLS_MODE)
+    public function task($api, $params = [], $service = 'base', $mode = Json::PROTOCOLS_MODE)
     {
         $this->guid = $this->generateGuid();
 
@@ -107,7 +109,7 @@ class SOA {
             $this->guid
         );
 
-        $client = $this->request($send_data);
+        $client = $this->request($send_data, $service);
 
         if ($client) {
             $this->setResultStatus($client, 'SUCCESS_TASK', Result::SUCCESS_TASK);
@@ -185,7 +187,7 @@ class SOA {
 
                     if (Format::checkHeaderLength($header['length'], $result) == false) {
                         $this->setResultStatus($retObj, 'ERR_LENGTH', Result::ERR_LENGTH);
-                        $this->taskError($retObj);
+                        $this->resultError($retObj);
                         continue;
                     }
 
@@ -240,27 +242,6 @@ class SOA {
     }
 
     /**
-     * 获取异步结果
-     * @param $timeout
-     * @return int
-     */
-    public function resultData($timeout = 0.5)
-    {
-        return $this->result($timeout);
-    }
-
-    /**
-     * 注意使用该方法  task主要用于处理  逻辑时间长  并且不需要等待返回的处理
-     * 如果逻辑时间过长  使用该方法
-     * @param $timeout
-     * @return int
-     */
-    public function resultTaskData($timeout = 0.5)
-    {
-        return $this->result($timeout);
-    }
-
-    /**
      * 设置服务列表
      * @param $list
      * @return $this
@@ -273,23 +254,6 @@ class SOA {
         }
 
         $this->serviceList = $list;
-
-        return $this;
-    }
-
-    /**
-     * 指定服务
-     * @param $name
-     * @return $this
-     */
-    public function setService($name)
-    {
-        if (!isset($this->serviceList[$name])) {
-            trigger_error('service does not exist', E_USER_WARNING);
-            return false;
-        }
-
-        $this->currentService = $name;
 
         return $this;
     }
@@ -337,13 +301,21 @@ class SOA {
     }
 
     /**
-     * 请求
+     * 发起请求
      * @param $send_data
+     * @param string $service
      * @return bool|Result
      */
-    protected function request($send_data)
+    protected function request($send_data, $service = 'base')
     {
         $result_obj = new Result($this);
+
+        if (!isset($this->serviceList[$service])) {
+            trigger_error('service does not exist', E_USER_ERROR);
+            return false;
+        }
+
+        $this->currentService = $service;
 
         if ($this->connectToServer($result_obj) === false) {
             $result_obj->code = Result::ERR_CONNECT;
@@ -371,7 +343,7 @@ class SOA {
      */
     protected function connectToServer(Result $result_obj)
     {
-        while (count($this->serviceList) > 0) {
+        while (count($this->serviceList[$this->currentService]) > 0) {
             $server = $this->getServer();
             $socket = $this->getConnection($server['host'], $server['port']);
             //连接失败，服务器节点不可用
@@ -390,17 +362,8 @@ class SOA {
 
     protected function getServer()
     {
-        if (empty($this->serviceList)) {
-            throw new \Exception("servers config empty.");
-        }
-
-        if (empty($this->currentService)) {
-            $key = array_rand($this->serviceList);
-            $connect_info = $this->serviceList[$key];
-        } else {
-            $key = array_rand($this->serviceList[$this->currentService]);
-            $connect_info = $this->serviceList[$this->currentService][$key];
-        }
+        $key = array_rand($this->serviceList[$this->currentService]);
+        $connect_info = $this->serviceList[$this->currentService][$key];
 
         return $connect_info;
     }
@@ -447,10 +410,10 @@ class SOA {
      */
     function onConnectServerFailed($server)
     {
-        foreach($this->serviceList as $k => $v) {
+        foreach($this->serviceList[$this->currentService] as $k => $v) {
             if ($v['host'] == $server['host'] && $v['port'] == $server['port']) {
                 //从Server列表中移除
-                unset($this->serviceList[$k]);
+                unset($this->serviceList[$this->currentService][$k]);
                 return true;
             }
         }
@@ -477,8 +440,6 @@ class SOA {
         return true;
     }
 
-
-
     /**
      * 生成唯一请求id
      * @return int
@@ -499,15 +460,6 @@ class SOA {
     }
 
     /**
-     * task错误响应
-     * @param Result $result_obj
-     */
-    protected function taskError(Result $result_obj)
-    {
-        unset(self::$taskList[$result_obj->requestId]);
-    }
-
-    /**
      * @param Result $result_obj
      * @param $message
      * @param $erron
@@ -520,10 +472,6 @@ class SOA {
         $result_obj->data = $data;
     }
 
-    protected function clean()
-    {
-        $this->currentService = null;
-    }
 }
 
 /**

@@ -296,7 +296,7 @@ abstract class Server extends ServerCallback implements ServerInterface {
             return true;
         }
 
-        if (Format::checkHeaderLength($header, $data) == false) {
+        if (Format::checkHeaderLength($header['length'], $data) == false) {
             return $this->sendMessage($fd, Format::packFormat('', '', self::ERR_LENGTH), $header['type'], $header['guid']);
         }
 

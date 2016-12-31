@@ -16,12 +16,12 @@ include '../../../vendor/autoload.php';
 class Discovery extends Server {
 
     /**
-     * @param \swoole_server $server
+     * @param swoole_server $server
      * @param int $fd
      * @param int $from_id
      * @param array $data
      * @param array $header
-     * @return mixed|void
+     * @return array
      */
     public function doWork(\swoole_server $server, $fd, $from_id, $data, $header)
     {

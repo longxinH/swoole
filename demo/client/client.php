@@ -13,12 +13,12 @@ $client->setServiceList(
  * SOA客户端
  */
 
-for ($x=0; $x<200; $x++) {
-    $call1 = $client->call('11', ['test1']);
-    $task_call = $client->task('11', ['task-test1']);
-    $call2 = $client->call('22', ['test2']);
-    $call3 = $client->call('33', ['test3']);
-    $client->resultData();
+for ($x=0; $x<100; $x++) {
+    $call1 = $client->call('/api/v1/', ['test1']);
+    $task_call = $client->task('/api/v1/task', ['task-test1']);
+    $call2 = $client->call('/api/v1.1/', ['test2']);
+    $call3 = $client->call('/api/v1.2/', ['test3']);
+    $client->result();
 
     echo $x . '--------------------' . "\r\n";
     //var_dump($call1->data, $call1->code, $call1->message, $call2->data, $call3->data);
