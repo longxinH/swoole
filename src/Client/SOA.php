@@ -541,23 +541,9 @@ class Result
         $this->soa_client = $soa_client;
     }
 
-    public function getResult($timeout = 1)
+    public function result($timeout = 1)
     {
-        if ($this->code == self::WAIT_RECV)
-        {
-            $this->soa_client->resultData($timeout);
-        }
-
-        return $this->data;
-    }
-
-    public function getTaskResult()
-    {
-        if ($this->code == self::SUCCESS_TASK || $this->code == self::WAIT_TASK_RECV)
-        {
-            $this->soa_client->resultTaskData();
-        }
-
+        $this->soa_client->result($timeout);
         return $this->data;
     }
 
