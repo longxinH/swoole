@@ -126,12 +126,18 @@ class DemoServer extends Server
 
     public function doWork(\swoole_server $server, $fd, $from_id, $data, $header)
     {
+        //return error
+        //return Format::packFormat('', 'error', '-1');
+        
         return Format::packFormat($data['params']);
     }
 
     public function doTask(\swoole_server $server, $task_id, $from_id, $data)
     {
-        return $data['params'];
+        //return error
+        //return Format::packFormat('', 'error', '-1');
+        
+        return Format::packFormat($data['params']);
     }
 }
 
