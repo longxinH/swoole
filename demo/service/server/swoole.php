@@ -14,6 +14,8 @@ include '../../../vendor/autoload.php';
 
 class DemoServer extends Server {
 
+    private static $yaf_instance;
+
     /**
      * @param swoole_server $server
      * @param int $fd
@@ -24,7 +26,31 @@ class DemoServer extends Server {
      */
     public function doWork(\swoole_server $server, $fd, $from_id, $data, $header)
     {
-        return Format::packFormat($data['params']);
+        if (!self::$yaf_instance instanceof \Yaf_Application) {
+            try {
+                self::$yaf_instance = (new \Yaf_Application(APPLICATION_PATH . '/config/yaf.ini', 'yaf'));
+                self::$yaf_instance->bootstrap();
+                self::$yaf_instance->getDispatcher()->disableView()->returnResponse(true);
+            } catch (Yaf_Exception $e) {
+                return Format::packFormat('', $e->getMessage(), $e->getCode());
+            }
+        }
+
+        try {
+            $yaf_request = new \Yaf_Request_Http($data['api']);
+
+            if (!empty($data['params'])) {
+                foreach ($data['params'] as $key => $value) {
+                    $yaf_request->setParam($key, $value);
+                }
+            }
+
+            $response = self::$yaf_instance->getDispatcher()->dispatch($yaf_request);
+            return Format::packFormat($response->getBody('content'));
+        } catch (Yaf_Exception $e) {
+            return Format::packFormat('', $e->getMessage(), $e->getCode());
+        }
+
     }
 
     /**
@@ -36,7 +62,30 @@ class DemoServer extends Server {
      */
     public function doTask(\swoole_server $server, $task_id, $from_id, $data)
     {
-        return $data['params'];
+        if (!self::$yaf_instance instanceof \Yaf_Application) {
+            try {
+                self::$yaf_instance = (new \Yaf_Application(APPLICATION_PATH . '/config/yaf.ini', 'yaf'));
+                self::$yaf_instance->bootstrap();
+                self::$yaf_instance->getDispatcher()->disableView()->returnResponse(true);
+            } catch (Yaf_Exception $e) {
+                return Format::packFormat('', $e->getMessage(), $e->getCode());
+            }
+        }
+
+        try {
+            $yaf_request = new \Yaf_Request_Http($data['api']);
+
+            if (!empty($data['params'])) {
+                foreach ($data['params'] as $key => $value) {
+                    $yaf_request->setParam($key, $value);
+                }
+            }
+
+            $response = self::$yaf_instance->getDispatcher()->dispatch($yaf_request);
+            return Format::packFormat($response->getBody('content'));
+        } catch (Yaf_Exception $e) {
+            return Format::packFormat('', $e->getMessage(), $e->getCode());
+        }
     }
 
 }
@@ -46,6 +95,11 @@ class DemoServer extends Server {
  */
 define('PROJECT_ROOT', dirname(__DIR__));
 
-$server = new DemoServer('../config/swoole.ini', 'rpc');
+/*
+ * YAF所在目录
+ */
+define('APPLICATION_PATH', realpath('../../') . '/application');
+
+$server = new DemoServer('../config/swoole.ini', 'rpc_yaf_');
 $server->run();
 

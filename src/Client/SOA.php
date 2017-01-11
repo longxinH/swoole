@@ -208,6 +208,7 @@ class SOA {
 
                     if ($data['code'] != 0) {
                         $this->setResultStatus($retObj, $data['message'], $data['code']);
+                        $this->resultError($retObj);
                         continue;
                     }
 

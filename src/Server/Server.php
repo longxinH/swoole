@@ -334,7 +334,7 @@ abstract class Server extends ServerCallback implements ServerInterface {
      * @param $task_id
      * @param $from_id
      * @param $task_data
-     * @return mixed|void
+     * @return array
      */
     final public function onTask(\swoole_server $server, $task_id, $from_id, $task_data)
     {
@@ -347,13 +347,21 @@ abstract class Server extends ServerCallback implements ServerInterface {
         ];
     }
 
+    /**
+     * task_worker完成
+     * @param \swoole_server $server
+     * @param $task_id
+     * @param $data
+     */
     final public function onFinish(\swoole_server $server, $task_id, $data)
     {
-        $send_data = $data['content'];
+        $send_data = isset($data['content']['data']) ? $data['content']['data'] : $data['content'];
+        $send_code = isset($data['content']['code']) ? $data['content']['code'] : 0;
+        $send_message = isset($data['content']['message']) ? $data['content']['message'] : '';
         $fd = $data['fd'];
         $header = $data['header'];
         
-        $this->sendMessage($fd, Format::packFormat($send_data), $header['type'], $header['guid']);
+        $this->sendMessage($fd, Format::packFormat($send_data, $send_message, $send_code), $header['type'], $header['guid']);
     }
     
     public function getHost()
