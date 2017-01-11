@@ -1,10 +1,11 @@
 ## RPC
-swoole rpc
+swoole + yaf rpc
 
 ----------
 ##环境依赖
 > * Swoole 1.8.x+
 > * PHP 5.4+
+> * YAF 2.3.x+
 > * Composer
 > * Redis
 
@@ -21,12 +22,22 @@ cd swoole-src
 phpize
 ./configure
 make && make install
+extension=swoole.so
+```
+
+### Install Yaf
+```
+cd yaf-src
+phpize
+./configure
+make && make install
+extension=yaf.so
 ```
 ----------
 
 ##安装
 ```
-composer require "longxinh/rpc:dev-master"
+composer require "longxinh/rpc:dev-yaf"
 ```
 ----------
 
@@ -126,12 +137,43 @@ class DemoServer extends Server
 
     public function doWork(\swoole_server $server, $fd, $from_id, $data, $header)
     {
-        return Format::packFormat($data['params']);
+        try {
+            $this->getYafInstance();
+        } catch (Yaf_Exception $e) {
+            return Format::packFormat('', $e->getMessage(), $e->getCode());
+        }
+
+        try {
+            return $this->yafDispatch($data['api'], $data['params']);
+        } catch (Yaf_Exception $e) {
+            return Format::packFormat('', $e->getMessage(), $e->getCode());
+        }
+
     }
 
-    public function doTask(\swoole_server $server, $task_id, $from_id, $data)
+    private function getYafInstance()
     {
-        return $data['params'];
+        if (!self::$yaf_instance instanceof \Yaf_Application) {
+            self::$yaf_instance = (new \Yaf_Application(APPLICATION_PATH . '/config/yaf.ini', 'yaf'));
+            self::$yaf_instance->bootstrap();
+            self::$yaf_instance->getDispatcher()->disableView()->returnResponse(true);
+        }
+
+        return self::$yaf_instance;
+    }
+    
+    private function yafDispatch($api, $params = '')
+    {
+        $yaf_request = new \Yaf_Request_Http($api);
+
+        if (!empty($params) && is_array($params)) {
+            foreach ($params as $key => $value) {
+                $yaf_request->setParam($key, $value);
+            }
+        }
+
+        $response = self::$yaf_instance->getDispatcher()->dispatch($yaf_request);
+        return Format::packFormat($response->getBody('content'));
     }
 }
 
@@ -140,7 +182,12 @@ class DemoServer extends Server
  */
 define('PROJECT_ROOT', dirname(__DIR__));
 
-$server = new DemoServer('servicepath/config/swoole.ini', 'rpc');
+/*
+ * YAF所在目录
+ */
+define('APPLICATION_PATH', realpath('../../') . '/application');
+
+$server = new DemoServer('servicepath/config/swoole.ini', 'rpc_yaf_');
 $server->setServiceName('userService');
 $server->run();
 
