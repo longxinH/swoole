@@ -21,7 +21,7 @@ interface ServerCallbackInterface {
     public function onConnect(\swoole_server $server, $fd, $from_id);
 
     /**
-     * 
+     *
      * @param \swoole_server $server
      * @param int $fd
      * @param int $from_id
@@ -75,4 +75,31 @@ interface ServerCallbackInterface {
      * @return void
      */
     public function onWorkerError(\swoole_server $serv, $worker_id, $worker_pid, $exit_code);
+
+    /**
+     * @param \swoole_server $server
+     * @param $task_id
+     * @param $from_id
+     * @param $data
+     * @return mixed
+     */
+    public function onTask(\swoole_server $server, $task_id, $from_id, $data);
+
+    /**
+     * @param \swoole_server $server
+     * @param $task_id
+     * @param $data
+     * @return mixed
+     */
+    public function onFinish(\swoole_server $server, $task_id, $data);
+
+    /**
+     * @param \swoole_server $server
+     * @param $fd
+     * @param $from_id
+     * @param $data
+     * @return mixed
+     */
+    public function onReceive(\swoole_server $server, $fd, $from_id, $data);
+
 }
