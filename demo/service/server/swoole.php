@@ -17,7 +17,18 @@ class DemoServer extends Server {
     /**
      * @var Yaf_Application
      */
-    private static $yaf_instance;
+    private $yaf;
+
+    public function onWorkerStart(\swoole_server $server, $workerId)
+    {
+        try {
+            $this->yaf = (new \Yaf_Application(APPLICATION_PATH . '/config/yaf.ini', 'yaf'));
+            $this->yaf->bootstrap();
+            $this->yaf->getDispatcher()->disableView()->returnResponse(true);
+        } catch (Yaf_Exception $e) {
+            echo sprintf("[%s]\t" . 'YAF INIT ERROR: ' . $e->getMessage() . PHP_EOL, date('Y-m-d H:i:s'));
+        }
+    }
 
     /**
      * @param swoole_server $server
@@ -29,10 +40,8 @@ class DemoServer extends Server {
      */
     public function doWork(\swoole_server $server, $fd, $from_id, $data, $header)
     {
-        try {
-            $this->getYafInstance();
-        } catch (Yaf_Exception $e) {
-            return Format::packFormat('', $e->getMessage(), $e->getCode());
+        if (!$this->yaf instanceof \Yaf_Application) {
+            return Format::packFormat('', 'YAF ERROR', -1);
         }
 
         try {
@@ -52,10 +61,8 @@ class DemoServer extends Server {
      */
     public function doTask(\swoole_server $server, $task_id, $from_id, $data)
     {
-        try {
-            $this->getYafInstance();
-        } catch (Yaf_Exception $e) {
-            return Format::packFormat('', $e->getMessage(), $e->getCode());
+        if (!$this->yaf instanceof \Yaf_Application) {
+            return Format::packFormat('', 'YAF ERROR', -1);
         }
 
         try {
@@ -63,21 +70,6 @@ class DemoServer extends Server {
         } catch (Yaf_Exception $e) {
             return Format::packFormat('', $e->getMessage(), $e->getCode());
         }
-    }
-
-    /**
-     * 实例化yaf
-     * @return Yaf_Application
-     */
-    private function getYafInstance()
-    {
-        if (!self::$yaf_instance instanceof \Yaf_Application) {
-            self::$yaf_instance = (new \Yaf_Application(APPLICATION_PATH . '/config/yaf.ini', 'yaf'));
-            self::$yaf_instance->bootstrap();
-            self::$yaf_instance->getDispatcher()->disableView()->returnResponse(true);
-        }
-
-        return self::$yaf_instance;
     }
 
     /**
@@ -96,8 +88,8 @@ class DemoServer extends Server {
             }
         }
 
-        $response = self::$yaf_instance->getDispatcher()->dispatch($yaf_request);
-        return Format::packFormat($response->getBody('content'));
+        $response = $this->yaf->getDispatcher()->dispatch($yaf_request);
+        return Format::packFormat($response->contentBody);
     }
 
 }
