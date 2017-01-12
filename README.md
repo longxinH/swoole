@@ -71,6 +71,8 @@ class Discovery extends Server {
 
 }
 
+include __Your vendor path__;
+
 /*
  * 项目所在目录
  */
@@ -134,13 +136,34 @@ daemonize = 0
 ```php
 class DemoServer extends Server
 {
+    /**
+     * @var Yaf_Application
+     */
+    private $yaf;
 
-    public function doWork(\swoole_server $server, $fd, $from_id, $data, $header)
+    public function onWorkerStart(\swoole_server $server, $workerId)
     {
         try {
-            $this->getYafInstance();
+            $this->yaf = (new \Yaf_Application(APPLICATION_PATH . '/config/yaf.ini', 'yaf'));
+            $this->yaf->bootstrap();
+            $this->yaf->getDispatcher()->disableView()->returnResponse(true);
         } catch (Yaf_Exception $e) {
-            return Format::packFormat('', $e->getMessage(), $e->getCode());
+            echo sprintf("[%s]\t" . 'YAF INIT ERROR: ' . $e->getMessage() . PHP_EOL, date('Y-m-d H:i:s'));
+        }
+    }
+
+    /**
+     * @param swoole_server $server
+     * @param int $fd
+     * @param int $from_id
+     * @param array $data
+     * @param array $header
+     * @return array
+     */
+    public function doWork(\swoole_server $server, $fd, $from_id, $data, $header)
+    {
+        if (!$this->yaf instanceof \Yaf_Application) {
+            return Format::packFormat('', 'YAF ERROR', -1);
         }
 
         try {
@@ -151,17 +174,32 @@ class DemoServer extends Server
 
     }
 
-    private function getYafInstance()
+    /**
+     * @param swoole_server $server
+     * @param $task_id
+     * @param $from_id
+     * @param $data
+     * @return mixed
+     */
+    public function doTask(\swoole_server $server, $task_id, $from_id, $data)
     {
-        if (!self::$yaf_instance instanceof \Yaf_Application) {
-            self::$yaf_instance = (new \Yaf_Application(APPLICATION_PATH . '/config/yaf.ini', 'yaf'));
-            self::$yaf_instance->bootstrap();
-            self::$yaf_instance->getDispatcher()->disableView()->returnResponse(true);
+        if (!$this->yaf instanceof \Yaf_Application) {
+            return Format::packFormat('', 'YAF ERROR', -1);
         }
 
-        return self::$yaf_instance;
+        try {
+            return $this->yafDispatch($data['api'], $data['params']);
+        } catch (Yaf_Exception $e) {
+            return Format::packFormat('', $e->getMessage(), $e->getCode());
+        }
     }
-    
+
+    /**
+     * 请求分发
+     * @param $api
+     * @param string $params
+     * @return array
+     */
     private function yafDispatch($api, $params = '')
     {
         $yaf_request = new \Yaf_Request_Http($api);
@@ -172,10 +210,12 @@ class DemoServer extends Server
             }
         }
 
-        $response = self::$yaf_instance->getDispatcher()->dispatch($yaf_request);
-        return Format::packFormat($response->getBody('content'));
+        $response = $this->yaf->getDispatcher()->dispatch($yaf_request);
+        return Format::packFormat($response->contentBody);
     }
 }
+
+include __Your vendor path__;
 
 /*
  * 项目所在目录
@@ -192,6 +232,18 @@ $server->setServiceName('userService');
 $server->run();
 
 ```
+
+###YAF MVC处理
+```php
+class IndexController extends Yaf_Controller_Abstract {
+
+    public function indexAction()
+    {
+        $this->getResponse()->contentBody = 'module :' . $this->getRequest()->getModuleName() . ' action :' . $this->getRequest()->getActionName() . ' controller :' . $this->getRequest()->getControllerName();
+    }
+}
+```
+
 
 ###rpc_path/service/config/swoole.ini 服务端配置参数
 1. ```server```   swoole 服务的ip，端口，运行模式
@@ -243,6 +295,8 @@ daemonize = 0
 > * ```$client->result(int|float $timeout)``` 获取请求结果 
 
 ```php
+include __Your vendor path__;
+
 $client = new \Swoole\Client\SOA('config/client.ini');
 $config = $client->getConfig();
 
@@ -266,6 +320,8 @@ var_dump($task_call2->result());
 
 ####client 非服务化客户端
 ```php
+include __Your vendor path__;
+
 $client = new \Swoole\Client\Client();
 $client->connect(host, port);
 $result = $client->send([
