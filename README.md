@@ -60,6 +60,8 @@ class Discovery extends Server {
 
 }
 
+include __Your vendor path__;
+
 /*
  * 项目所在目录
  */
@@ -141,6 +143,8 @@ class DemoServer extends Server
     }
 }
 
+include __Your vendor path__;
+
 /*
  * 项目所在目录
  */
@@ -202,6 +206,8 @@ daemonize = 0
 > * ```$client->result(int|float $timeout)``` 获取请求结果 
 
 ```php
+include __Your vendor path__;
+
 $client = new \Swoole\Client\SOA('config/client.ini');
 $config = $client->getConfig();
 
@@ -225,6 +231,8 @@ var_dump($task_call2->result());
 
 ####client 非服务化客户端
 ```php
+include __Your vendor path__;
+
 $client = new \Swoole\Client\Client();
 $client->connect(host, port);
 $result = $client->send([
