@@ -5,7 +5,7 @@ namespace Swoole\Server;
 use Swoole\Client\Client;
 use Swoole\Packet\Format;
 
-abstract class Server extends ServerCallback implements ServerInterface {
+abstract class Server implements ServerInterface {
     /**
      * @var Server
      */
@@ -70,16 +70,16 @@ abstract class Server extends ServerCallback implements ServerInterface {
      * @var int
      */
     protected $mode = SWOOLE_PROCESS;
-    
+
     const SUCCESS_TASK  = 9000; //投递task成功
-        
+
     const ERR_HEADER    = 9001; //错误的包头
     const ERR_LENGTH    = 9002; //错误的长度
 
     const ERR_UNPACK    = 9204; //解包失败
     const ERR_PARAMS    = 9205; //参数错误
     const ERR_CALL      = 9206; //执行错误
-    
+
 
     public function __construct($config, $process_name = 'swoole')
     {
@@ -108,7 +108,7 @@ abstract class Server extends ServerCallback implements ServerInterface {
         } else {
             trigger_error('parameter array or file path', E_USER_ERROR);
         }
-        
+
         if (isset($config['server']['host'])) {
             $this->host = $config['server']['host'];
             unset($config['server']['host']);
@@ -143,7 +143,7 @@ abstract class Server extends ServerCallback implements ServerInterface {
         $config['swoole']['package_body_offset'] = Format::HEADER_SIZE;
         $this->config = $config;
     }
-    
+
     public function setServiceName($name)
     {
         self::$serviceName = $name;
@@ -182,7 +182,7 @@ abstract class Server extends ServerCallback implements ServerInterface {
     {
         $this->server = new \swoole_server($this->host, $this->port, $this->mode, $this->sockType);
         $this->server->set($this->config['swoole']);
-        $this->initCallback($this->server);
+        (new ServerCallback($this))->initCallback($this->server);
     }
 
     /**
@@ -305,7 +305,7 @@ abstract class Server extends ServerCallback implements ServerInterface {
         if ($data == false) {
             return $this->sendMessage($fd, Format::packFormat('', '', self::ERR_UNPACK), $header['type'], $header['guid']);
         }
-        
+
         //投递task
         if (isset($data['cmd']) && $data['cmd'] == 'task') {
             $task_data = [
@@ -313,7 +313,7 @@ abstract class Server extends ServerCallback implements ServerInterface {
                 'fd'        => $fd,
                 'content'   => $data
             ];
-            
+
             $server->task($task_data);
             $this->sendMessage($fd, Format::packFormat('', '', self::SUCCESS_TASK), $header['type'], $header['guid']);
         } else {
@@ -324,7 +324,7 @@ abstract class Server extends ServerCallback implements ServerInterface {
                 $this->sendMessage($fd, Format::packFormat('', '', self::ERR_CALL), $header['type'], $header['guid']);
             }
         }
-        
+
         return true;
     }
 
@@ -363,18 +363,57 @@ abstract class Server extends ServerCallback implements ServerInterface {
 
         $this->sendMessage($fd, Format::packFormat($send_data, $send_message, $send_code), $header['type'], $header['guid']);
     }
-    
+
+    /**
+     * 获取ip
+     * @return string
+     */
     public function getHost()
     {
         return $this->host;
     }
 
+    /**
+     * 获取端口
+     * @return string
+     */
     public function getPort()
     {
         return $this->port;
     }
 
-    public function sendMessage($fd, $send_data, $protocol_mode, $guid = 0)
+    /**
+     * 获取进程名称
+     * @return string
+     */
+    public function getProcessName()
+    {
+        if (empty($this->processName)) {
+            return "php {$_SERVER['argv'][0]}";
+        } else {
+            return $this->processName;
+        }
+    }
+
+    /**
+     * 获取Master文件地址
+     * @return string
+     */
+    public function getMasterPidFile()
+    {
+        return $this->masterPidFile;
+    }
+
+    /**
+     * 获取Manager文件地址
+     * @return string
+     */
+    public function getManagerPidFile()
+    {
+        return $this->managerPidFile;
+    }
+
+    final public function sendMessage($fd, $send_data, $protocol_mode, $guid = 0)
     {
         $this->server->send($fd, Format::packEncode($send_data, $protocol_mode, $guid));
     }
