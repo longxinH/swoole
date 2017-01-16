@@ -4,7 +4,7 @@ namespace Swoole\Client;
 
 use Swoole\Packet\Format;
 
-class Client implements ClientInterface {
+class Client {
 
     const ERR_UNPACK     = 8006; //解包失败
     const ERR_HEADER     = 8007; //错误的协议头

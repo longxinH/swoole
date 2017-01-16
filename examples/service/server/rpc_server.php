@@ -1,28 +1,24 @@
 <?php
 /*
   +----------------------------------------------------------------------+
-  | rpc服务 server-demo                                                  |
+  | rpc服务 rpc-server                                                    |
   +----------------------------------------------------------------------+
   | Author:  longxinH       <longxinhui.e@gmail.com>                     |
   +----------------------------------------------------------------------+
 */
 
-use \Swoole\Server\Server;
+use \Swoole\Server\Tcp;
 use \Swoole\Packet\Format;
 
-include '../../../vendor/autoload.php';
+include __DIR__ . '/../../../vendor/autoload.php';
 
-class DemoServer extends Server {
+class RpcDemo extends Tcp {
 
     /**
-     * @param swoole_server $server
-     * @param int $fd
-     * @param int $from_id
      * @param array $data
-     * @param array $header
      * @return array
      */
-    public function doWork(\swoole_server $server, $fd, $from_id, $data, $header)
+    public function doWork($data)
     {
         //return error
         //return Format::packFormat('', 'error', '-1');
@@ -31,13 +27,10 @@ class DemoServer extends Server {
     }
 
     /**
-     * @param swoole_server $server
-     * @param $task_id
-     * @param $from_id
      * @param $data
      * @return mixed
      */
-    public function doTask(\swoole_server $server, $task_id, $from_id, $data)
+    public function doTask($data)
     {
         //return error
         //return Format::packFormat('', 'error', '-1');
@@ -52,6 +45,16 @@ class DemoServer extends Server {
  */
 define('PROJECT_ROOT', dirname(__DIR__));
 
-$server = new DemoServer('../config/swoole.ini', 'rpc');
+$server = new RpcDemo('../config/swoole.ini', 'rpc');
+
+/*
+ * 服务注册
+ */
+$server->addProcess(
+    \Swoole\Console\Process::createProcess(
+        \Swoole\Service\Registry::register($server)
+    )
+);
+
 $server->run();
 

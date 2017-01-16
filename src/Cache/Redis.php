@@ -17,7 +17,7 @@ class Redis implements CacheInterface {
      */
     protected $redis;
     
-    private function __construct($host, $port, $auth = false, $db = '')
+    public function __construct($host, $port, $auth = false, $db = '')
     {
         try {
             $this->redis = new \Redis();

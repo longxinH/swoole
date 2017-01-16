@@ -1,7 +1,7 @@
 {
-    "name": "longxinh/rpc",
-    "description": "Basic Swoole RPC",
-    "keywords": ["RPC"],
+    "name": "longxinh/swoole",
+    "description": "Swoole",
+    "keywords": ["Swoole"],
     "type": "library",
     "license": "MIT",
     "authors": [

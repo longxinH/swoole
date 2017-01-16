@@ -4,8 +4,9 @@ namespace Swoole\Client;
 
 use Swoole\Packet\Format;
 use Swoole\Protocols\Json;
+use Swoole\Service\Registry;
 
-class SOA {
+class RPC {
 
     /**
      * 请求列表
@@ -44,6 +45,12 @@ class SOA {
      * @var array
      */
     protected $connections = [];
+
+    /**
+     * 服务发现容器
+     * @var string
+     */
+    protected $discoveryType = 'redis';
 
     /**
      * SOA constructor.
@@ -247,16 +254,23 @@ class SOA {
      * @param $list
      * @return $this
      */
-
     public function setServiceList(array $list)
     {
         if (empty($list)) {
             trigger_error('service list is empty', E_USER_ERROR);
         }
 
-        $this->serviceList = $list;
+        $this->serviceList = array_merge($this->serviceList, $list);
 
         return $this;
+    }
+
+    /**
+     * 启动服务发现
+     */
+    public function startDiscovery()
+    {
+        $this->serviceList = Registry::discovery($this->config[$this->discoveryType], $this->discoveryType);
     }
 
     /**
@@ -299,6 +313,15 @@ class SOA {
     public function setTimeOut($time)
     {
         $this->timeout = $time;
+    }
+
+    /**
+     * 设置服务发现容器
+     * @param $container
+     */
+    public function setDiscoveryType($container)
+    {
+        $this->discoveryType = $container;
     }
 
     /**
@@ -409,7 +432,7 @@ class SOA {
      * @param $server
      * @return bool
      */
-    function onConnectServerFailed($server)
+    public function onConnectServerFailed($server)
     {
         foreach($this->serviceList[$this->currentService] as $k => $v) {
             if ($v['host'] == $server['host'] && $v['port'] == $server['port']) {
@@ -516,7 +539,7 @@ class Result
     public $is_task = false;
 
     /**
-     * @var SOA
+     * @var RPC
      */
     protected $soa_client;
 

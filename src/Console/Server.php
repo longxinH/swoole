@@ -4,7 +4,7 @@ namespace Swoole\Console;
 
 class Server {
 
-    static function reload($pid_file)
+    public static function reload($pid_file)
     {
         $pid = self::getPidFromFile($pid_file);
 
@@ -33,7 +33,7 @@ class Server {
      * @param $process_name
      * @return bool
      */
-    static function shutdown($pid_file, $process_name)
+    public static function shutdown($pid_file, $process_name)
     {
         $pid = self::getPidFromFile($pid_file);
 
@@ -56,17 +56,17 @@ class Server {
         return true;
     }
 
-    static public function getPidFromFile($file)
+    public static function getPidFromFile($file)
     {
         $pid = false;
         if (file_exists($file)) {
-            $pid = file_get_contents($file);
+            $pid = (int)@file_get_contents($file);
         }
 
         return $pid;
     }
 
-    static public function log($msg)
+    public static function log($msg)
     {
         echo sprintf("[%s]\t" . $msg . PHP_EOL, date('Y-m-d H:i:s'));
     }
