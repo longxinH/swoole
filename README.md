@@ -1,12 +1,11 @@
-## RPC
-swoole rpc
+## SWOOLE
+swoole library
 
 ----------
 ##环境依赖
 > * Swoole 1.8.x+
 > * PHP 5.4+
 > * Composer
-> * Redis
 
 ## Install
 
@@ -26,7 +25,7 @@ make && make install
 
 ##安装
 ```
-composer require "longxinh/rpc:dev-master"
+composer require "longxinh/swoole:dev-master"
 ```
 ----------
 
