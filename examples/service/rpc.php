@@ -7,12 +7,12 @@
   +----------------------------------------------------------------------+
 */
 
-use \Swoole\Server\Tcp;
+use \Swoole\Server\RPC;
 use \Swoole\Packet\Format;
 
-include __DIR__ . '/../../../vendor/autoload.php';
+include __DIR__ . '/../../vendor/autoload.php';
 
-class RpcDemo extends Tcp {
+class RpcServer extends RPC {
 
     /**
      * @param array $data
@@ -45,16 +45,38 @@ class RpcDemo extends Tcp {
  */
 define('PROJECT_ROOT', dirname(__DIR__));
 
-$server = new RpcDemo('../config/swoole.ini', 'rpc');
+$server = new RpcServer('0.0.0.0:9501', 'rpc');
+
+/*
+ * 设置Pid存放路径
+ */
+$server->setPidPath(__DIR__ . '/run');
 
 /*
  * 服务注册
  */
 $server->addProcess(
     \Swoole\Console\Process::createProcess(
-        \Swoole\Service\Registry::register($server)
+        \Swoole\Service\Registry::register(
+            new \Swoole\Service\Container\Redis('127.0.0.1', '6379'),
+            $server
+        )
     )
 );
 
-$server->run();
+$server->run([
+    'worker_num'            => 4,
+    'task_worker_num'       => 4,
+    'max_request'           => 5000,
+    'dispatch_mode'         => 3,
+    'open_length_check'     => 1,
+    'package_max_length'    => 2000000,
+    'package_length_type'   => 'N',
+    'package_body_offset'   => Format::HEADER_SIZE,
+    'package_length_offset' => 0,
+    'log_file'              => "/tmp/swoole-rpc-0.0.0.0:9501.log",
+    //todo 守护进程改成1
+    'daemonize'             => 0
+]);
+
 

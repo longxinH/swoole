@@ -34,6 +34,14 @@ interface ServerInterface {
      */
     public function getManagerPidFile();
 
+    /**
+     * @param $config
+     */
+    public function run($config);
 
+    /**
+     * @param \swoole_process $process
+     */
+    public function addProcess(\swoole_process $process);
 
 }

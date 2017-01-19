@@ -9,14 +9,19 @@
 
 use \Swoole\Server\Http;
 
-include __DIR__ . '/../../../vendor/autoload.php';
+include __DIR__ . '/../../vendor/autoload.php';
 
 class Watch extends Http {
 
+    /**
+     * @param \Swoole\Server\Request $request
+     * @return string
+     */
     public function doRequest(\Swoole\Server\Request $request)
     {
-        $container = $this->config['server']['container'];
-        $list = \Swoole\Service\Registry::discovery($this->config[$container], $container);
+        $list = \Swoole\Service\Registry::discovery(
+            new \Swoole\Service\Container\Redis('127.0.0.1', '6379')
+        );
 
         if (empty($list)) {
             $html = '无可用服务';
@@ -41,15 +46,27 @@ class Watch extends Http {
  */
 define('PROJECT_ROOT', dirname(__DIR__));
 
-$server = new Watch('../config/monitor.ini', 'watch');
+$server = new Watch('0.0.0.0:9569', 'watch');
+
+/*
+ * 设置Pid存放路径
+ */
+$server->setPidPath(__DIR__ . '/run');
 
 /*
  * 注册中心监控
  */
 $server->addProcess(
     \Swoole\Console\Process::createProcess(
-        \Swoole\Service\Registry::watch($server, $server->getConfig('server')['container'])
+        \Swoole\Service\Registry::watch(
+            new \Swoole\Service\Container\Redis('127.0.0.1', '6379'),
+            $server
+        )
     )
 );
 
-$server->run();
+$server->run([
+    'worker_num' => 0,
+    'max_request' => 5000,
+    'log_file' => '/tmp/swoole-watch-0.0.0.0:9569.log'
+]);

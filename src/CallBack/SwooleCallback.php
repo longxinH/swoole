@@ -24,7 +24,7 @@ class SwooleCallback {
         $handles = get_class_methods($this);
 
         foreach ($handles as $value) {
-            if ('on' == substr($value, 0, 2)) {
+            if (substr($value, 0, 2) == 'on') {
                 $swoole->on(lcfirst(substr($value, 2)), [$this, $value]);
             }
         }

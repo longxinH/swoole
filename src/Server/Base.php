@@ -3,10 +3,8 @@
 namespace Swoole\Server;
 
 use Swoole\CallBack\SwooleCallback;
-use Swoole\Console\Process;
 use Swoole\Console\Server;
-use Swoole\Packet\Format;
-use Swoole\Client\Client;
+use Swoole\Tool;
 
 abstract class Base implements ServerInterface {
 
@@ -22,11 +20,6 @@ abstract class Base implements ServerInterface {
     protected $processes = [];
 
     /**
-     * @var int
-     */
-    protected $mode = SWOOLE_PROCESS;
-
-    /**
      * @var string
      */
     protected $host = '127.0.0.1';
@@ -39,7 +32,7 @@ abstract class Base implements ServerInterface {
     /**
      * @var string
      */
-    protected $pidPath;
+    protected $pidPath = '/tmp';
 
     /**
      * 进程名称
@@ -61,70 +54,31 @@ abstract class Base implements ServerInterface {
      */
     protected $server;
 
-    public function __construct($config, $process_name = 'swoole')
+    /**
+     * Base constructor.
+     * @param $address
+     * @param string $process_name
+     */
+    public function __construct($address, $process_name = 'swoole')
     {
-        $this->configure($config);
+        $info = Tool::parse_address($address);
 
-        $file_name = $process_name . '-server-' . $this->host . '-' . $this->port;
-        $this->masterPidFile = $this->pidPath . '/' . $file_name . '.master.pid';
-        $this->managerPidFile = $this->pidPath . '/' . $file_name . '.manager.pid';
+        $this->host = $info['host'];
+        $this->port = $info['port'];
 
         $this->processName = $process_name;
     }
 
-    public function configure($config)
-    {
-        if (is_string($config)) {
-            if (!is_file($config)) {
-                trigger_error($config . ' configuration does not exist', E_USER_ERROR);
-            }
-
-            $config = parse_ini_file($config, true);
-
-        } else if (is_array($config)) {
-            if (empty($config)) {
-                trigger_error('configure is empty', E_USER_ERROR);
-            }
-        } else {
-            trigger_error('parameter array or file path', E_USER_ERROR);
-        }
-
-        if (isset($config['server']['host'])) {
-            $this->host = $config['server']['host'];
-            unset($config['server']['host']);
-        }
-
-        if (isset($config['server']['port'])) {
-            $this->port = $config['server']['port'];
-            unset($config['server']['port']);
-        }
-
-        if (isset($config['server']['mode'])) {
-            $this->mode = $config['server']['mode'];
-            unset($config['server']['mode']);
-        }
-
-        if (isset($config['server']['pid_path'])) {
-            $this->pidPath = $config['server']['pid_path'];
-            unset($config['server']['pid_path']);
-        } else {
-            $this->pidPath = realpath('..') . '/run';
-        }
-
-        if (!file_exists($this->pidPath)) {
-            mkdir($this->pidPath, 0700);
-        }
-
-        $config['swoole']['package_body_offset'] = Format::HEADER_SIZE;
-
-        $this->config = $config;
-    }
-
     /**
      * 运行服务
+     * @param $config
      */
-    public function run()
+    public function run($config)
     {
+        $this->masterPidFile = $this->pidPath . '/' . $this->processName . '.master.pid';
+        $this->managerPidFile = $this->pidPath . '/' . $this->processName . '.manager.pid';
+        $this->config = array_merge($this->config, (array) $config);
+
         $cmd = isset($_SERVER['argv'][1]) ? strtolower($_SERVER['argv'][1]) : 'help';
         switch ($cmd) {
             case 'stop':
@@ -217,15 +171,6 @@ abstract class Base implements ServerInterface {
     }
 
     /**
-     * @param null $section
-     * @return array|mixed|null
-     */
-    public function getConfig($section = null)
-    {
-        return $section ? (isset($this->config[$section]) ? $this->config[$section] : null) : $this->config;
-    }
-
-    /**
      * 获取服务器真实ip
      * @return string
      */
@@ -249,11 +194,20 @@ abstract class Base implements ServerInterface {
     }
 
     /**
+     * 设置Pid存放路径
+     * @param $path
+     */
+    public function setPidPath($path)
+    {
+        $this->pidPath = $path;
+    }
+
+    /**
      * 初始化服务
      */
     protected function initServer()
     {
-        $this->server->set($this->config['swoole']);
+        $this->server->set($this->config);
         (new SwooleCallback($this))->initCallback();
     }
 
@@ -297,6 +251,5 @@ abstract class Base implements ServerInterface {
     {
         return Server::reload($this->managerPidFile);
     }
-
 
 }

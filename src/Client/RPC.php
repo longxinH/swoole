@@ -4,8 +4,14 @@ namespace Swoole\Client;
 
 use Swoole\Packet\Format;
 use Swoole\Protocols\Json;
+use Swoole\Service\Container\ContainerInterface;
 use Swoole\Service\Registry;
 
+/**
+ * RPC客户端
+ * Class RPC
+ * @package Swoole\Client
+ */
 class RPC {
 
     /**
@@ -41,26 +47,17 @@ class RPC {
     protected $timeout = 1;
 
     /**
-     * 服务器
+     * 连接服务器
      * @var array
      */
     protected $connections = [];
 
     /**
-     * 服务发现容器
-     * @var string
+     * RPC constructor.
      */
-    protected $discoveryType = 'redis';
-
-    /**
-     * SOA constructor.
-     * @param string $config
-     */
-    public function __construct($config = '')
+    public function __construct()
     {
-        if ($config) {
-            $this->setConfig($config);
-        }
+        //
     }
 
     /**
@@ -267,10 +264,11 @@ class RPC {
 
     /**
      * 启动服务发现
+     * @param ContainerInterface $container
      */
-    public function startDiscovery()
+    public function startDiscovery(ContainerInterface $container)
     {
-        $this->serviceList = Registry::discovery($this->config[$this->discoveryType], $this->discoveryType);
+        $this->serviceList = Registry::discovery($container);
     }
 
     /**
@@ -313,15 +311,6 @@ class RPC {
     public function setTimeOut($time)
     {
         $this->timeout = $time;
-    }
-
-    /**
-     * 设置服务发现容器
-     * @param $container
-     */
-    public function setDiscoveryType($container)
-    {
-        $this->discoveryType = $container;
     }
 
     /**
@@ -401,16 +390,20 @@ class RPC {
         }
 
         $socket = new \swoole_client(SWOOLE_SOCK_TCP | SWOOLE_KEEP, SWOOLE_SOCK_SYNC);
-        if ($this->config) {
-            $socket->set(isset($this->config['swoole']) ? $this->config['swoole'] : $this->config);
-        }
+        $socket->set([
+            'open_length_check' => true,
+            'package_max_length' => 2000000,
+            'package_length_type' => 'N',
+            'package_body_offset' => Format::HEADER_SIZE,
+            'package_length_offset' => 0,
+        ]);
 
         /**
          * 尝试重连一次
          */
         for ($i = 0; $i < 2; $i++) {
             $ret = $socket->connect($host, $port, $this->timeout);
-            if ($ret === false && ($socket->errCode == 114 || $socket->errCode == 115)) {
+            if ($ret === false) {
                 //强制关闭，重连
                 $socket->close(true);
                 continue;
@@ -499,8 +492,8 @@ class RPC {
 }
 
 /**
- * SOA服务请求结果对象
- * Class SOA_Result
+ * RPC服务请求结果对象
+ * Class Result
  * @package Swoole\Client
  */
 class Result

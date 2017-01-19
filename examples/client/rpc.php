@@ -7,18 +7,17 @@
   +----------------------------------------------------------------------+
 */
 
-include '../../vendor/autoload.php';
+include __DIR__ . '/../../vendor/autoload.php';
 
-$client = new \Swoole\Client\RPC('config/client.ini');
-//设置服务发现容器
-$client->setDiscoveryType('redis');
+$client = new \Swoole\Client\RPC;
 //启动服务发现
-$client->startDiscovery();
+$client->startDiscovery(
+    new \Swoole\Service\Container\Redis('127.0.0.1', '6379')
+);
 
 /**
- * SOA客户端
+ * RPC客户端
  */
-
 for ($x=0; $x<1; $x++) {
     $call1 = $client->call('/api/v1/', ['test1']);
     $task_call = $client->task('/api/v1/task', ['task-test1']);

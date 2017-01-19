@@ -4,7 +4,11 @@ namespace Swoole\Client;
 
 use Swoole\Packet\Format;
 
-class Http {
+/**
+ * Class Curl
+ * @package Swoole\Client
+ */
+class Curl {
 
     private $curl;
     private $headers = [];

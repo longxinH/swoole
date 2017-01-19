@@ -11,16 +11,6 @@ abstract class Http extends Base implements ServerInterface {
 
     const HttpServer = true;
 
-    const SUCCESS_TASK  = 9000; //投递task成功
-
-    const ERR_HEADER    = 9001; //错误的包头
-    const ERR_LENGTH    = 9002; //错误的长度
-
-    const ERR_UNPACK    = 9204; //解包失败
-    const ERR_PARAMS    = 9205; //参数错误
-    const ERR_CALL      = 9206; //执行错误
-
-
     public function __construct($config, $process_name = 'swoole')
     {
         parent::__construct($config, $process_name);
@@ -71,6 +61,7 @@ abstract class Http extends Base implements ServerInterface {
 
     /**
      * @param Request $request
+     * @return string
      */
     abstract public function doRequest(Request $request);
 
@@ -85,7 +76,7 @@ class Request {
     /**
      * @var \swoole_http_request
      */
-    private $request;
+    protected $request;
 
     /**
      * @param $request
@@ -136,12 +127,12 @@ class Request {
 
     public function getPost()
     {
-        return $this->request->post;
+        return isset($this->request->post) ? $this->request->post : null;
     }
 
     public function getGet()
     {
-        return isset($this->request->get) ? $this->request->get : [];
+        return isset($this->request->get) ? $this->request->get : null;
     }
 
     public function post($key)
@@ -165,7 +156,7 @@ class Response  {
     /**
      * @var \swoole_http_response
      */
-    private $response;
+    protected $response;
 
     public function __construct($response)
     {
