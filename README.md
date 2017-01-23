@@ -113,6 +113,17 @@ $server->addProcess(
 $server->run(array Swoole 配置);
 ```
 
+###服务监控中心
+> * ```\Swoole\Service\Registry```
+> * ```register``` 方法, 实现向服务存储容器上报注册信息，提供当前服务 ```host``` 和 ```ip```
+> * ```watch``` 方法, 实现服务监控，检测超时服务，并剔除不可用服务
+> * ```discovery``` 方法, 实现服务发现，在服务存储容器里获取到目前可用服务
+
+###服务存储容器
+> * ```\Swoole\Service\Container\Redis```
+> * ```\Swoole\Service\Container\Zookeeper```
+
+
 ----------
 
 #快速开始
