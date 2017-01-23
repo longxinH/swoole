@@ -7,12 +7,12 @@
   +----------------------------------------------------------------------+
 */
 
-use \Swoole\Server\Server;
+use \Swoole\Server\RPC;
 use \Swoole\Packet\Format;
 
-include '../../../vendor/autoload.php';
+include '../../vendor/autoload.php';
 
-class DemoServer extends Server {
+class YafServer extends RPC {
 
     /**
      * @var Yaf_Application
@@ -31,14 +31,10 @@ class DemoServer extends Server {
     }
 
     /**
-     * @param swoole_server $server
-     * @param int $fd
-     * @param int $from_id
-     * @param array $data
-     * @param array $header
+     * @param $data
      * @return array
      */
-    public function doWork(\swoole_server $server, $fd, $from_id, $data, $header)
+    public function doWork($data)
     {
         if (!$this->yaf instanceof \Yaf_Application) {
             return Format::packFormat('', 'YAF ERROR', -1);
@@ -53,13 +49,10 @@ class DemoServer extends Server {
     }
 
     /**
-     * @param swoole_server $server
-     * @param $task_id
-     * @param $from_id
      * @param $data
-     * @return mixed
+     * @return array
      */
-    public function doTask(\swoole_server $server, $task_id, $from_id, $data)
+    public function doTask($data)
     {
         if (!$this->yaf instanceof \Yaf_Application) {
             return Format::packFormat('', 'YAF ERROR', -1);
@@ -102,8 +95,39 @@ define('PROJECT_ROOT', dirname(__DIR__));
 /*
  * YAF所在目录
  */
-define('APPLICATION_PATH', realpath('../../') . '/application');
+define('APPLICATION_PATH', realpath('../') . '/application');
 
-$server = new DemoServer('../config/swoole.ini', 'rpc_yaf_');
-$server->run();
+$server = new YafServer('0.0.0.0:9501', 'rpc_yaf_');
+
+/*
+ * 设置Pid存放路径
+ */
+$server->setPidPath(__DIR__ . '/run');
+
+/*
+ * 服务注册
+ */
+$server->addProcess(
+    \Swoole\Console\Process::createProcess(
+        \Swoole\Service\Registry::register(
+            new \Swoole\Service\Container\Redis('127.0.0.1', '6379'),
+            $server
+        )
+    )
+);
+
+$server->run([
+    'worker_num'            => 4,
+    'task_worker_num'       => 4,
+    'max_request'           => 5000,
+    'dispatch_mode'         => 3,
+    'open_length_check'     => 1,
+    'package_max_length'    => 2000000,
+    'package_length_type'   => 'N',
+    'package_body_offset'   => Format::HEADER_SIZE,
+    'package_length_offset' => 0,
+    'log_file'              => "/tmp/swoole-rpc-0.0.0.0:9501.log",
+    //todo 守护进程改成1
+    'daemonize'             => 0
+]);
 

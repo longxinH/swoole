@@ -1,7 +1,7 @@
 {
-    "name": "longxinh/rpc",
+    "name": "longxinh/swoole",
     "description": "Basic Swoole + Yaf RPC",
-    "keywords": ["RPC"],
+    "keywords": ["Swoole RPC"],
     "type": "library",
     "license": "MIT",
     "authors": [
