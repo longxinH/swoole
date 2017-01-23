@@ -66,6 +66,10 @@ class SwooleCallback {
     {
         Process::setProcessName('swoole_' . $this->server->getProcessName() . ': master');
 
+        if (!file_exists(dirname($this->server->getMasterPidFile()))) {
+            mkdir(dirname($this->server->getMasterPidFile()), 0755);
+        }
+
         file_put_contents($this->server->getMasterPidFile(), $server->master_pid);
         file_put_contents($this->server->getManagerPidFile(), $server->manager_pid);
 
