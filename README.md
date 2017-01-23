@@ -37,7 +37,7 @@ extension=yaf.so
 
 ##安装
 ```
-composer require "longxinh/rpc:dev-yaf"
+composer require "longxinh/swoole:dev-yaf"
 ```
 ----------
 
