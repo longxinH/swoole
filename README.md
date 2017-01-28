@@ -32,7 +32,7 @@ composer require "longxinh/swoole:dev-master"
 ##使用
 ###TCP Server
 > * 服务继承 ```\Swoole\Server\Tcp```
-> * ```doWork(string $data)``` 方法, 服务在接收信息 ```onReceive``` 回调中会调用 ```doWork``` 方法，返回给客户端的格式： ```字符串```
+> * ```doWork(swoole_server $server, int $fd, int $from_id, string $data)``` 方法, 服务在接收 ```onReceive``` 事件回调时会调用 ```doWork``` 方法执行自定义逻辑，返回给客户端的格式： ```字符串```
 
 ```php
 class TcpServer extends \Swoole\Server\Tcp {
@@ -41,7 +41,7 @@ class TcpServer extends \Swoole\Server\Tcp {
      * @param array $data
      * @return string
      */
-    public function doWork($data)
+    public function doWork(\swoole_server $server, $fd, $from_id, $data)
     {
         return 'tcp :' . $data;
     }
@@ -53,7 +53,7 @@ $server->run(array Swoole 配置);
 
 ###HTTP Server
 > * 服务继承 ```\Swoole\Server\HTTP```
-> * ```doRequest(\Swoole\Server\Request $request)``` 方法, 服务在接收信息 ```onRequest``` 回调中会调用 ```doRequest``` 方法，返回给客户端的格式： ```字符串```
+> * ```doRequest(\Swoole\Server\Request $request)``` 方法, 服务在接收 ```onRequest``` 事件回调时会调用 ```doRequest``` 方法执行自定义逻辑，返回给客户端的格式： ```字符串```
 
 ```php
 class HttpServer extends \Swoole\Server\HTTP {
@@ -71,9 +71,9 @@ $server->run(array Swoole 配置);
 
 ###RPC Server
 > * 服务继承 ```\Swoole\Server\RPC```
-> * ```doRequest(array $data)``` 方法, 服务在接收信息 ```onRequest``` 回调中会调用 ```doRequest``` 方法，返回给客户端的格式： ```经过打包协议的字符串```
-> * ```doTask(array $data)``` 方法, 服务在接收信息 ```onTask``` 回调中会调用 ```onTask``` 方法，返回给客户端的格式： ```经过打包协议的字符串```，并返回数据给 ```onFinish```
-> * 服务注册目前提供 ```redis``` 和 ```zookeeper```两种形式，需调用 ```addProcess()``` 新建一个进程注册服务
+> * ```doWork(swoole_server $server, int $fd, int $from_id, array $data)``` 方法, 服务在接收 ```onReceive``` 事件回调时会调用 ```doWork``` 方法执行自定义逻辑，返回给客户端的格式： ```经过打包协议的字符串```
+> * ```doTask(array $data)``` 方法, 服务在接收 ```onTask``` 事件回调时会调用 ```onTask``` 方法，返回给客户端的格式： ```经过打包协议的字符串```，并返回数据给 ```onFinish```
+> * 服务注册目前提供 ```redis``` 和 ```zookeeper```两种形式，需调用 ```addProcess``` 新建一个进程注册服务
 
 ```php
 class RpcServer extends \Swoole\Server\RPC {
@@ -82,7 +82,7 @@ class RpcServer extends \Swoole\Server\RPC {
      * @param array $data
      * @return array
      */
-    public function doWork($data)
+    public function doWork(\swoole_server $server, $fd, $from_id, $data)
     {
         return Format::packFormat($data['params']);
     }
