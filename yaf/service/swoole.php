@@ -31,10 +31,13 @@ class YafServer extends RPC {
     }
 
     /**
+     * @param swoole_server $server
+     * @param $fd
+     * @param $from_id
      * @param $data
      * @return array
      */
-    public function doWork($data)
+    public function doWork(\swoole_server $server, $fd, $from_id, $data)
     {
         if (!$this->yaf instanceof \Yaf_Application) {
             return Format::packFormat('', 'YAF ERROR', -1);
@@ -126,7 +129,7 @@ $server->run([
     'package_length_type'   => 'N',
     'package_body_offset'   => Format::HEADER_SIZE,
     'package_length_offset' => 0,
-    'log_file'              => "/tmp/swoole-rpc-0.0.0.0:9501.log",
+    'log_file'              => "/tmp/swoole-yaf-rpc-0.0.0.0:9501.log",
     //todo 守护进程改成1
     'daemonize'             => 0
 ]);

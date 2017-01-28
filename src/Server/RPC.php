@@ -75,7 +75,7 @@ abstract class RPC extends Base implements ServerInterface {
             $this->sendMessage($fd, Format::packFormat('', 'SUCCESS_TASK', self::SUCCESS_TASK), $header['type'], $header['guid']);
         } else {
             try {
-                $data = $this->doWork($data);
+                $data = $this->doWork($server, $fd, $from_id, $data);
                 $this->sendMessage($fd, $data, $header['type'], $header['guid']);
             } catch (\Exception $e) {
                 $this->sendMessage($fd, Format::packFormat('', 'ERR_CALL', self::ERR_CALL), $header['type'], $header['guid']);
@@ -129,6 +129,6 @@ abstract class RPC extends Base implements ServerInterface {
         $this->server->send($fd, Format::packEncode($send_data, $protocol_mode, $guid));
     }
 
-    abstract public function doWork($data);
+    abstract public function doWork(\swoole_server $server, $fd, $from_id, $data);
 
 }
