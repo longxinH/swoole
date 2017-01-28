@@ -14,10 +14,13 @@ include __DIR__ . '/../../vendor/autoload.php';
 class TcpServer extends Tcp {
 
     /**
-     * @param array $data
+     * @param swoole_server $server
+     * @param $fd
+     * @param $from_id
+     * @param $data
      * @return string
      */
-    public function doWork($data)
+    public function doWork(\swoole_server $server, $fd, $from_id, $data)
     {
         return 'tcp :' . $data;
     }

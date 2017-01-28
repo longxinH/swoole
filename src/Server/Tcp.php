@@ -35,7 +35,7 @@ abstract class Tcp extends Base implements ServerInterface {
     final public function onReceive(\swoole_server $server, $fd, $from_id, $data)
     {
         try {
-            $content = $this->doWork($data);
+            $content = $this->doWork($server, $fd, $from_id, $data);
             $server->send($fd, $content);
         } catch (\Exception $e) {
             $server->send($fd, 'Error : ' . $e->getMessage() . ' Code : ' . $e->getCode());
@@ -44,6 +44,6 @@ abstract class Tcp extends Base implements ServerInterface {
         return true;
     }
 
-    abstract public function doWork($data);
+    abstract public function doWork(\swoole_server $server, $fd, $from_id, $data);
 
 }

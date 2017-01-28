@@ -15,10 +15,13 @@ include __DIR__ . '/../../vendor/autoload.php';
 class RpcServer extends RPC {
 
     /**
-     * @param array $data
+     * @param swoole_server $server
+     * @param $fd
+     * @param $from_id
+     * @param $data
      * @return array
      */
-    public function doWork($data)
+    public function doWork(\swoole_server $server, $fd, $from_id, $data)
     {
         //return error
         //return Format::packFormat('', 'error', '-1');
