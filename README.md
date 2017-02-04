@@ -106,8 +106,12 @@ $server->addProcess(
     \Swoole\Console\Process::createProcess(
         \Swoole\Service\Registry::register(
             new \Swoole\Service\Container\Redis('127.0.0.1', '6379'),
-            $server
-        )
+            //使用zookeeper作为注册中心
+            //new \Swoole\Service\Container\Zookeeper('127.0.0.1', '2181'),
+            $server,
+            //可自定义服务名称，默认名称为base
+            'base'
+        )
     )
 );
 $server->run(array Swoole 配置);
@@ -123,6 +127,23 @@ $server->run(array Swoole 配置);
 > * ```\Swoole\Service\Container\Redis```
 > * ```\Swoole\Service\Container\Zookeeper```
 
+```php
+/*
+ * 服务注册
+ */
+$server->addProcess(
+    \Swoole\Console\Process::createProcess(
+        \Swoole\Service\Registry::register(
+            new \Swoole\Service\Container\Redis('127.0.0.1', '6379'),
+            //使用zookeeper作为注册中心
+            //new \Swoole\Service\Container\Zookeeper('127.0.0.1', '2181'),
+            $server,
+            //可自定义服务名称，默认名称为base
+            'base'
+        )
+    )
+);
+```
 
 ----------
 
@@ -137,6 +158,7 @@ $server->run(array Swoole 配置);
 
 ###运行服务注册中心
 > * 对注册服务添加到可用服务列表中，并剔除超时服务
+> * 由于watch继承于 ```\Swoole\Server\HTTP```，可通过浏览器查看可用服务，url输入 ```http://127.0.0.1:9569/```
 
 ```shell
  cd __Your swoole path__/examples/monitor/
