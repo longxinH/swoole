@@ -21,6 +21,7 @@ class Watch extends Http {
     {
         $list = \Swoole\Service\Registry::discovery(
             new \Swoole\Service\Container\Redis('127.0.0.1', '6379')
+            //new \Swoole\Service\Container\Zookeeper('127.0.0.1', '2181')
         );
 
         if (empty($list)) {
@@ -60,6 +61,7 @@ $server->addProcess(
     \Swoole\Console\Process::createProcess(
         \Swoole\Service\Registry::watch(
             new \Swoole\Service\Container\Redis('127.0.0.1', '6379'),
+            //new \Swoole\Service\Container\Zookeeper('127.0.0.1', '2181'),
             $server
         )
     )

@@ -62,7 +62,9 @@ $server->addProcess(
     \Swoole\Console\Process::createProcess(
         \Swoole\Service\Registry::register(
             new \Swoole\Service\Container\Redis('127.0.0.1', '6379'),
-            $server
+            //new \Swoole\Service\Container\Zookeeper('127.0.0.1', '2181'),
+            $server,
+            'base'
         )
     )
 );
