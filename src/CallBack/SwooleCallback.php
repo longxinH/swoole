@@ -60,6 +60,10 @@ class SwooleCallback {
         if (is_callable([$this->server, 'onWorkerError'])) {
             $swoole->on('WorkerError', [$this->server, 'onWorkerError']);
         }
+
+        if (is_callable([$this->server, 'onPipeMessage'])) {
+            $swoole->on('PipeMessage', [$this->server, 'onPipeMessage']);
+        }
     }
 
     public function onStart(\swoole_server $server)
