@@ -15,7 +15,8 @@ class Server {
             return false;
 
         //SIGUSR1  10
-        } else if (!posix_kill($pid, SIGUSR1)) {
+        //posix_kill($pid, SIGUSR1)
+        } else if (!\swoole_process::kill($pid, SIGUSR1)) {
             self::log('send signal to manager failed');
             self::log('stop [FAIL]');
 
@@ -44,7 +45,8 @@ class Server {
             return false;
 
         //SIGTERM  15  SIGKILL 9
-        } else if (!posix_kill($pid, SIGTERM)) {
+        //posix_kill($pid, SIGTERM)
+        } else if (!\swoole_process::kill($pid, SIGTERM)) {
             self::log($process_name . ': send signal to master failed');
             self::log($process_name . ': stop [FAIL]');
 

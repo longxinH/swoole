@@ -2,6 +2,7 @@
 
 namespace Swoole\Server;
 
+use Swoole\Console\Server;
 use Swoole\Packet\Format;
 
 abstract class RPC extends Base implements ServerInterface {
@@ -78,7 +79,9 @@ abstract class RPC extends Base implements ServerInterface {
                 $data = $this->doWork($server, $fd, $from_id, $data);
                 $this->sendMessage($fd, $data, $header['type'], $header['guid']);
             } catch (\Exception $e) {
-                $this->sendMessage($fd, Format::packFormat('', 'ERR_CALL', self::ERR_CALL), $header['type'], $header['guid']);
+                $msg = $e->getMessage();
+                $code = $e->getCode();
+                $this->sendMessage($fd, Format::packFormat('', $msg ? $msg : 'ERR_CALL', $msg ? $code : self::ERR_CALL), $header['type'], $header['guid']);
             }
         }
 
@@ -91,20 +94,32 @@ abstract class RPC extends Base implements ServerInterface {
      * @param $task_id
      * @param $from_id
      * @param $task_data
-     * @return array
+     * @return array|bool
      */
     final public function onTask(\swoole_server $server, $task_id, $from_id, $task_data)
     {
         $data = null;
+        $status = true;
         if (method_exists($this, 'doTask')) {
-            $data = $this->doTask($task_data['content']);
+            try {
+                $data = $this->doTask($task_data['content']);
+            } catch (\Exception $e) {
+                $data = Format::packFormat('', $e->getMessage(), $e->getCode());
+                $status = false;
+            }
         }
 
-        return [
-            'header'    => $task_data['header'],
-            'fd'        => $task_data['fd'],
-            'content'   => $data
-        ];
+        if (!isset($task_data['fd']) && $status == false) {
+            Server::log('error : ' . $data['message'] . ' | code : ' . $data['code']);
+        } else if (isset($task_data['fd']) && !empty($task_data['header'])) {
+            return [
+                'header'    => $task_data['header'],
+                'fd'        => $task_data['fd'],
+                'content'   => $data
+            ];
+        }
+
+        return true;
     }
 
     /**
@@ -112,20 +127,29 @@ abstract class RPC extends Base implements ServerInterface {
      * @param \swoole_server $server
      * @param $task_id
      * @param $data
+     * @return bool
      */
     final public function onFinish(\swoole_server $server, $task_id, $data)
     {
-        $send_data = isset($data['content']['data']) ? $data['content']['data'] : $data['content'];
-        $send_code = isset($data['content']['code']) ? $data['content']['code'] : 0;
-        $send_message = isset($data['content']['message']) ? $data['content']['message'] : '';
-        $fd = $data['fd'];
-        $header = $data['header'];
+        if (!empty($data['fd'])) {
+            $send_data = isset($data['content']['data']) ? $data['content']['data'] : $data['content'];
+            $send_code = isset($data['content']['code']) ? $data['content']['code'] : 0;
+            $send_message = isset($data['content']['message']) ? $data['content']['message'] : '';
+            $fd = $data['fd'];
+            $header = $data['header'];
 
-        $this->sendMessage($fd, Format::packFormat($send_data, $send_message, $send_code), $header['type'], $header['guid']);
+            $this->sendMessage($fd, Format::packFormat($send_data, $send_message, $send_code), $header['type'], $header['guid']);
+        }
+
+        return true;
     }
 
     final public function sendMessage($fd, $send_data, $protocol_mode, $guid = 0)
     {
+        if (empty($send_data)) {
+            return true;
+        }
+
         $this->server->send($fd, Format::packEncode($send_data, $protocol_mode, $guid));
     }
 
